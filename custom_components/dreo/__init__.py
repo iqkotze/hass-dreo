@@ -8,6 +8,7 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from .haimports import *  # pylint: disable=W0401,W0614
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from .runtime import DreoConfigEntry, DreoRuntimeData
 from .config_flow import normalize_username
 from .const import DOMAIN, CONF_AUTO_RECONNECT, DEBUG_TEST_MODE
@@ -143,6 +144,14 @@ def _backfill_unique_id(hass: HomeAssistant, config_entry: DreoConfigEntry, user
         hass.config_entries.async_update_entry(config_entry, unique_id=unique_id)
 
 
+def _raise_login_failure(pydreo_manager) -> None:
+    """Raise ConfigEntryAuthFailed for rejected credentials, else ConfigEntryNotReady."""
+    _LOGGER.error("async_setup_entry: Unable to login to the dreo server")
+    if pydreo_manager.last_login_error == "invalid_auth":
+        raise ConfigEntryAuthFailed("Invalid Dreo credentials")
+    raise ConfigEntryNotReady("Unable to login to the Dreo server")
+
+
 async def async_setup_entry(hass: HomeAssistant, config_entry: DreoConfigEntry) -> bool:
     "HomeAssistant EntryPoint"
     _LOGGER.debug("async_setup_entry: Starting setup")
@@ -192,8 +201,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: DreoConfigEntry) 
     login = await hass.async_add_executor_job(pydreo_manager.login)
 
     if not login:
-        _LOGGER.error("async_setup_entry: Unable to login to the dreo server")
-        raise ConfigEntryNotReady("Unable to login to the Dreo server")
+        _raise_login_failure(pydreo_manager)
 
     load_devices = await hass.async_add_executor_job(pydreo_manager.load_devices)
 

@@ -286,3 +286,52 @@ class TestOptionsFlowHandler:
         for key, value in schema_dict.items():
             if "auto_reconnect" in str(key):
                 assert value is bool
+
+
+class TestReauth:
+    """Reauthentication flow."""
+
+    @staticmethod
+    def _flow(login_result, error=None, exc=None):
+        flow = DreoFlowHandler()
+        entry = MagicMock()
+        entry.data = {"username": "test@example.com", "password": "old", "region": "EU"}
+        flow._get_reauth_entry = MagicMock(return_value=entry)
+        flow.async_show_form = MagicMock(return_value="form")
+        flow.async_update_reload_and_abort = MagicMock(return_value="aborted")
+        flow.hass = MagicMock()
+        flow.hass.async_add_executor_job = AsyncMock(return_value=login_result, side_effect=exc)
+        manager = MagicMock()
+        manager.last_login_error = error
+        return flow, entry, manager
+
+    def test_reauth_shows_password_form(self):
+        """#5 K2: reauth shows a password-only form with the username placeholder."""
+        flow, _, _ = self._flow(True)
+        assert asyncio.run(flow.async_step_reauth({})) == "form"
+        kwargs = flow.async_show_form.call_args[1]
+        assert kwargs["step_id"] == "reauth_confirm"
+        assert kwargs["description_placeholders"] == {"username": "test@example.com"}
+        assert [str(k) for k in kwargs["data_schema"].schema] == ["password"]
+
+    def test_reauth_success_updates_password(self):
+        """#5 K4: valid password updates the entry and aborts with reload."""
+        flow, entry, manager = self._flow(True)
+        with patch("custom_components.dreo.config_flow.PyDreo", return_value=manager) as mock_pydreo:
+            result = asyncio.run(flow.async_step_reauth_confirm({"password": "new"}))
+        assert result == "aborted"
+        mock_pydreo.assert_called_once_with("test@example.com", "new", region="EU")
+        flow.async_update_reload_and_abort.assert_called_once_with(entry, data_updates={"password": "new"})
+
+    @pytest.mark.parametrize(
+        "error,exc,expected",
+        [("invalid_auth", None, "invalid_auth"), ("cannot_connect", None, "cannot_connect"), (None, RuntimeError("boom"), "unknown")],
+    )
+    def test_reauth_failure_shows_error(self, error, exc, expected):
+        """#5 K2/K4: failed login shows the mapped error and keeps the password."""
+        flow, _, manager = self._flow(False, error=error, exc=exc)
+        with patch("custom_components.dreo.config_flow.PyDreo", return_value=manager):
+            result = asyncio.run(flow.async_step_reauth_confirm({"password": "bad"}))
+        assert result == "form"
+        assert flow.async_show_form.call_args[1]["errors"] == {"base": expected}
+        flow.async_update_reload_and_abort.assert_not_called()

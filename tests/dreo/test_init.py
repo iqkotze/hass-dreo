@@ -3,7 +3,7 @@
 import asyncio
 import pytest
 from unittest.mock import MagicMock, AsyncMock, patch
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 
 from custom_components.dreo.const import DEBUG_TEST_MODE
 
@@ -48,6 +48,26 @@ class TestInit:
 
         with pytest.raises(ConfigEntryNotReady):
             asyncio.run(async_setup_entry(mock_hass, mock_entry))
+
+    @pytest.mark.parametrize(
+        "error,exc", [("invalid_auth", ConfigEntryAuthFailed), ("cannot_connect", ConfigEntryNotReady), (None, ConfigEntryNotReady)]
+    )
+    def test_login_failure_exception_depends_on_error(self, error, exc):
+        """#5 K1/K4: invalid_auth raises ConfigEntryAuthFailed, other failures ConfigEntryNotReady."""
+        from custom_components.dreo import async_setup_entry
+
+        mock_hass = MagicMock()
+        mock_hass.data = {}
+        mock_hass.async_add_executor_job = AsyncMock(return_value=False)
+        mock_entry = MagicMock()
+        mock_entry.data = {"username": "test@example.com", "password": "password"}
+        mock_entry.options = {}
+
+        with patch("custom_components.dreo.pydreo.PyDreo") as mock_pydreo:
+            mock_pydreo.return_value.last_login_error = error
+            with pytest.raises(exc) as info:
+                asyncio.run(async_setup_entry(mock_hass, mock_entry))
+        assert info.type is exc
 
     def test_load_devices_failure_raises_config_entry_not_ready(self):
         """Test that a load_devices failure raises ConfigEntryNotReady instead of returning False."""

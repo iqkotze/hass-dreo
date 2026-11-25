@@ -11,6 +11,13 @@
         "data_description": {
           "region": "Wybierz region chmury Dreo dla swojego konta. Automatyczne wykrywanie działa dla większości użytkowników."
         }
+      },
+      "reauth_confirm": {
+        "title": "Uwierzytelnij ponownie",
+        "description": "Hasło dla {username} nie jest już ważne. Wprowadź aktualne hasło.",
+        "data": {
+          "password": "Hasło"
+        }
       }
     },
     "error": {
@@ -19,7 +26,8 @@
       "unknown": "Nieoczekiwany błąd."
     },
     "abort": {
-      "already_configured": "Konto jest już skonfigurowane."
+      "already_configured": "Konto jest już skonfigurowane.",
+      "reauth_successful": "Ponowne uwierzytelnienie zakończyło się powodzeniem."
     }
   },
   "options": {

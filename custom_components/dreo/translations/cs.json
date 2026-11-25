@@ -11,6 +11,13 @@
         "data_description": {
           "region": "Vyberte cloudový region Dreo pro váš účet. Pro většinu uživatelů funguje automatické zjištění."
         }
+      },
+      "reauth_confirm": {
+        "title": "Znovu se přihlaste",
+        "description": "Heslo pro {username} již není platné. Zadejte aktuální heslo.",
+        "data": {
+          "password": "Heslo"
+        }
       }
     },
     "error": {
@@ -19,7 +26,8 @@
       "unknown": "Neočekávaná chyba."
     },
     "abort": {
-      "already_configured": "Účet je již nakonfigurován."
+      "already_configured": "Účet je již nakonfigurován.",
+      "reauth_successful": "Opětovné přihlášení bylo úspěšné."
     }
   },
   "options": {

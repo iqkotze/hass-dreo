@@ -93,18 +93,47 @@ class DreoFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         await self.async_set_unique_id(normalize_username(self._username))
         self._abort_if_unique_id_configured()
 
-        pydreo_manager = PyDreo(self._username, self._password, region=normalized_region)
-        try:
-            login = await self.hass.async_add_executor_job(pydreo_manager.login)
-        except Exception:  # pylint: disable=broad-except
-            _LOGGER.exception("async_step_user: Unexpected error during login")
-            return self._show_form(errors={"base": "unknown"})
-        if not login:
-            return self._show_form(errors={"base": pydreo_manager.last_login_error or "unknown"})
+        error = await self._async_login_error(self._username, self._password, normalized_region)
+        if error:
+            return self._show_form(errors={"base": error})
 
         return self.async_create_entry(
             title=self._username,
             data={CONF_USERNAME: self._username, CONF_PASSWORD: self._password, CONF_REGION: region},
+        )
+
+    async def _async_login_error(self, username: str, password: str, region: str | None) -> str | None:
+        """Try a login; return the error key, or None on success."""
+        pydreo_manager = PyDreo(username, password, region=region)
+        try:
+            login = await self.hass.async_add_executor_job(pydreo_manager.login)
+        except Exception:  # pylint: disable=broad-except
+            _LOGGER.exception("Unexpected error during login")
+            return "unknown"
+        if not login:
+            return pydreo_manager.last_login_error or "unknown"
+        return None
+
+    async def async_step_reauth(self, entry_data: Dict[str, Any]) -> ConfigFlowResult:
+        """Start reauthentication after the stored password was rejected."""
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(self, user_input: Dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Ask for a new password and validate it."""
+        entry = self._get_reauth_entry()
+        username = entry.data[CONF_USERNAME]
+        errors: Dict[str, str] = {}
+        if user_input is not None:
+            region = entry.data.get(CONF_REGION, CONF_REGION_AUTO)
+            error = await self._async_login_error(username, user_input[CONF_PASSWORD], None if region == CONF_REGION_AUTO else region)
+            if not error:
+                return self.async_update_reload_and_abort(entry, data_updates={CONF_PASSWORD: user_input[CONF_PASSWORD]})
+            errors["base"] = error
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=vol.Schema({vol.Required(CONF_PASSWORD): str}),
+            description_placeholders={"username": username},
+            errors=errors,
         )
 
     @staticmethod

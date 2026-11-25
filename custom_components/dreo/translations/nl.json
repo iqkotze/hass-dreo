@@ -11,6 +11,13 @@
         "data_description": {
           "region": "Kies de Dreo-cloudregio voor je account. Automatische detectie werkt voor de meeste gebruikers."
         }
+      },
+      "reauth_confirm": {
+        "title": "Opnieuw aanmelden",
+        "description": "Het wachtwoord voor {username} is niet meer geldig. Voer het huidige wachtwoord in.",
+        "data": {
+          "password": "Wachtwoord"
+        }
       }
     },
     "error": {
@@ -19,7 +26,8 @@
       "unknown": "Onverwachte fout."
     },
     "abort": {
-      "already_configured": "Account is al geconfigureerd."
+      "already_configured": "Account is al geconfigureerd.",
+      "reauth_successful": "Opnieuw aanmelden is gelukt."
     }
   },
   "options": {

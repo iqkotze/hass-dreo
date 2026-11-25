@@ -11,6 +11,13 @@
         "data_description": {
           "region": "Wählen Sie die Dreo-Cloud-Region für Ihr Konto. Automatische Erkennung funktioniert für die meisten Benutzer."
         }
+      },
+      "reauth_confirm": {
+        "title": "Erneut anmelden",
+        "description": "Das Passwort für {username} ist nicht mehr gültig. Bitte gib das aktuelle Passwort ein.",
+        "data": {
+          "password": "Passwort"
+        }
       }
     },
     "error": {
@@ -19,7 +26,8 @@
       "unknown": "Unerwarteter Fehler."
     },
     "abort": {
-      "already_configured": "Das Konto ist bereits konfiguriert."
+      "already_configured": "Das Konto ist bereits konfiguriert.",
+      "reauth_successful": "Die erneute Anmeldung war erfolgreich."
     }
   },
   "options": {

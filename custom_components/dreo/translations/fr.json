@@ -11,6 +11,13 @@
         "data_description": {
           "region": "Choisissez la région cloud Dreo de votre compte. La détection automatique convient à la plupart des utilisateurs."
         }
+      },
+      "reauth_confirm": {
+        "title": "Se réauthentifier",
+        "description": "Le mot de passe de {username} n'est plus valide. Veuillez saisir le mot de passe actuel.",
+        "data": {
+          "password": "Mot de passe"
+        }
       }
     },
     "error": {
@@ -19,7 +26,8 @@
       "unknown": "Erreur inattendue."
     },
     "abort": {
-      "already_configured": "Le compte est déjà configuré."
+      "already_configured": "Le compte est déjà configuré.",
+      "reauth_successful": "La réauthentification a réussi."
     }
   },
   "options": {

@@ -11,6 +11,13 @@
         "data_description": {
           "region": "Seleziona la regione cloud di Dreo per il tuo account. Il rilevamento automatico funziona per la maggior parte degli utenti."
         }
+      },
+      "reauth_confirm": {
+        "title": "Autenticati di nuovo",
+        "description": "La password di {username} non è più valida. Inserisci la password attuale.",
+        "data": {
+          "password": "Password"
+        }
       }
     },
     "error": {
@@ -19,7 +26,8 @@
       "unknown": "Errore imprevisto."
     },
     "abort": {
-      "already_configured": "L'account è già configurato."
+      "already_configured": "L'account è già configurato.",
+      "reauth_successful": "La riautenticazione è riuscita."
     }
   },
   "options": {
