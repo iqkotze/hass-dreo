@@ -72,6 +72,52 @@ FAULT_OTHER = "other"
 FAULT_OPTIONS = [FAULT_OK, FAULT_TIP_OVER, FAULT_OTHER]
 FAULT_CODE_MAP = {0: FAULT_OK, 64: FAULT_TIP_OVER}
 
+
+def _is_bool(value) -> bool:
+    return isinstance(value, bool)
+
+
+def _is_int(value) -> bool:
+    """Int check as before the table refactor: bools pass too."""
+    return isinstance(value, int)
+
+
+def _is_int_not_bool(value) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _is_str(value) -> bool:
+    return isinstance(value, str)
+
+
+# Websocket keys copied unchanged to an attribute when the value passes the check (see handle_server_update).
+_SERVER_UPDATE_FIELDS = (
+    (HTALEVEL_KEY, "_htalevel", _is_int),
+    (POWERON_KEY, "_is_on", _is_bool),
+    (TEMPERATURE_KEY, "_temperature", _is_int),
+    (COOLLEVEL_KEY, "_coollevel", _is_int_not_bool),
+    (LIGHTMODE_KEY, "_lightmode", _is_int_not_bool),
+    (HORIZONTAL_OSCILLATION_KEY, "_hoscon", _is_bool),
+    (HORIZONTAL_ANGLE_ADJ_KEY, "_hangleadj", _is_int_not_bool),
+    (OSCON_KEY, "_oscon", _is_bool),
+    (OSCANGLE_KEY, "_oscangle", _is_int),
+    (OSCMODE_KEY, "_oscmode", _is_int),
+    (MUTEON_KEY, "_mute_on", _is_bool),
+    (DEVON_KEY, "_dev_on", _is_bool),
+    (COOLDOWN_KEY, "_cooldown", _is_int),
+    (LIGHTON_KEY, "_light_on", _is_bool),
+    (LEDKEPTON_KEY, "_led_kept_on", _is_bool),
+    (CTLSTATUS_KEY, "_ctlstatus", _is_str),
+    (ECOLEVEL_KEY, "_ecolevel", _is_int),
+    (CHILDLOCKON_KEY, "_childlockon", _is_bool),
+    (TEMPOFFSET_KEY, "_tempoffset", _is_int),
+    (AIRFLOWMODE_KEY, "_airflowmode", _is_int),
+    (RGBON_KEY, "_rgbon", _is_bool),
+    (RGB_BRI, "_rgbbri", _is_int),
+    (WINOPENON_KEY, "_winopenon", _is_bool),
+    (FIXEDCONF_KEY, "_fixed_conf", _is_str),
+)
+
 if TYPE_CHECKING:
     from pydreo import PyDreo
 
@@ -924,91 +970,52 @@ class PyDreoHeater(PyDreoBaseDevice):
         """Process a websocket update"""
         _LOGGER.debug("handle_server_update: handle_server_update(%s): %s", self.name, message)
 
-        val_htalevel = self.get_server_update_key_value(message, HTALEVEL_KEY)
-        if isinstance(val_htalevel, int):
-            self._htalevel = val_htalevel
+        # Plain fields. A poweron report does NOT reset _mode to OFF: hvac_mode already returns OFF while
+        # _is_on is False, and resetting it showed OFF after power-on when the ACK lacked the mode.
+        for key, attr, accepts in _SERVER_UPDATE_FIELDS:
+            value = self.get_server_update_key_value(message, key)
+            if accepts(value):
+                setattr(self, attr, value)
 
-        # no base class method to handle _is_on
-        val_power_on = self.get_server_update_key_value(message, POWERON_KEY)
-        if isinstance(val_power_on, bool):
-            self._is_on = val_power_on
-            # Do NOT reset _mode to OFF here. The hvac_mode property already returns
-            # HVACMode.OFF when _is_on is False, regardless of _mode. Resetting _mode
-            # to OFF causes hvac_mode to show OFF after the device powers on if the
-            # power-on WebSocket ACK doesn't include the mode (a common occurrence).
+        self._apply_server_mode(message)
+        self._apply_server_parsed_values(message)
+        self._apply_server_ptc(message)
+        self._apply_server_fault_code(message)
 
-        val_temperature = self.get_server_update_key_value(message, TEMPERATURE_KEY)
-        if isinstance(val_temperature, int):
-            self._temperature = val_temperature
-
+    def _apply_server_mode(self, message) -> None:
+        """Apply mode, heat sub-mode and fan mode of a websocket update."""
         # Reported mode can be an empty string if the heater is off. Ignore empty
         # mode strings to preserve the last known active mode so that hvac_mode
         # correctly reflects the device state when it powers back on.
         val_mode = self.get_server_update_key_value(message, MODE_KEY)
         if isinstance(val_mode, str) and val_mode:
             self._mode = val_mode if val_mode in self.device_definition.modes else DreoHeaterMode.OFF
-        elif self.is_fan_heater and isinstance(val_mode, int) and not isinstance(val_mode, bool):
+        elif self.is_fan_heater and _is_int_not_bool(val_mode):
             self._function = self._int_enum(DreoHeaterFunction, val_mode)
             self._mode = self._mode_from_function()
 
         val_htamode = self.get_server_update_key_value(message, HTAMODE_KEY)
-        if isinstance(val_htamode, int) and not isinstance(val_htamode, bool):
+        if _is_int_not_bool(val_htamode):
             self._htamode = self._int_enum(DreoHeaterHeatMode, val_htamode)
             if self.is_fan_heater:
                 self._mode = self._mode_from_function()
 
         val_coolmode = self.get_server_update_key_value(message, COOLMODE_KEY)
-        if isinstance(val_coolmode, int) and not isinstance(val_coolmode, bool):
+        if _is_int_not_bool(val_coolmode):
             self._coolmode = self._int_enum(DreoHeaterFanMode, val_coolmode)
 
-        val_coollevel = self.get_server_update_key_value(message, COOLLEVEL_KEY)
-        if isinstance(val_coollevel, int) and not isinstance(val_coollevel, bool):
-            self._coollevel = val_coollevel
-
-        val_lightmode = self.get_server_update_key_value(message, LIGHTMODE_KEY)
-        if isinstance(val_lightmode, int) and not isinstance(val_lightmode, bool):
-            self._lightmode = val_lightmode
-
-        val_hoscon = self.get_server_update_key_value(message, HORIZONTAL_OSCILLATION_KEY)
-        if isinstance(val_hoscon, bool):
-            self._hoscon = val_hoscon
-
+    def _apply_server_parsed_values(self, message) -> None:
+        """Apply the websocket values that need parsing (oscillation angle, cruise config)."""
         val_hoscangle = self._parse_hoscangle(self.get_server_update_key_value(message, HORIZONTAL_OSCILLATION_ANGLE_KEY))
         if val_hoscangle is not None:
             self._hoscangle = val_hoscangle
-
-        val_hangleadj = self.get_server_update_key_value(message, HORIZONTAL_ANGLE_ADJ_KEY)
-        if isinstance(val_hangleadj, int) and not isinstance(val_hangleadj, bool):
-            self._hangleadj = val_hangleadj
 
         val_cruise_conf = self._parse_cruise_conf(self.get_server_update_key_value(message, CRUISECONF_KEY))
         if val_cruise_conf is not None:
             self._cruise_conf = val_cruise_conf
 
-        val_oscon = self.get_server_update_key_value(message, OSCON_KEY)
-        if isinstance(val_oscon, bool):
-            self._oscon = val_oscon
-
-        val_oscangle = self.get_server_update_key_value(message, OSCANGLE_KEY)
-        if isinstance(val_oscangle, int):
-            self._oscangle = val_oscangle
-
-        val_oscmode = self.get_server_update_key_value(message, OSCMODE_KEY)
-        if isinstance(val_oscmode, int):
-            self._oscmode = val_oscmode
-
-        val_muteon = self.get_server_update_key_value(message, MUTEON_KEY)
-        if isinstance(val_muteon, bool):
-            self._mute_on = val_muteon
-
-        val_devon = self.get_server_update_key_value(message, DEVON_KEY)
-        if isinstance(val_devon, bool):
-            self._dev_on = val_devon
-
-        val_cooldown = self.get_server_update_key_value(message, COOLDOWN_KEY)
-        if isinstance(val_cooldown, int):
-            self._cooldown = val_cooldown
-
+    def _apply_server_ptc(self, message) -> None:
+        """Apply the PTC (heating element) state of a websocket update."""
         val_ptc_on = self.get_server_update_key_value(message, PTCON_KEY)
         if isinstance(val_ptc_on, bool):
             self._ptc_on = val_ptc_on
@@ -1018,50 +1025,8 @@ class PyDreoHeater(PyDreoBaseDevice):
                 _LOGGER.debug("handle_server_update: PTC turned on, inferring device is powered on")
                 self._is_on = True
 
-        val_light_on = self.get_server_update_key_value(message, LIGHTON_KEY)
-        if isinstance(val_light_on, bool):
-            self._light_on = val_light_on
-
-        val_led_kept_on = self.get_server_update_key_value(message, LEDKEPTON_KEY)
-        if isinstance(val_led_kept_on, bool):
-            self._led_kept_on = val_led_kept_on
-
-        val_ctlstatus = self.get_server_update_key_value(message, CTLSTATUS_KEY)
-        if isinstance(val_ctlstatus, str):
-            self._ctlstatus = val_ctlstatus
-
-        val_ecolevel = self.get_server_update_key_value(message, ECOLEVEL_KEY)
-        if isinstance(val_ecolevel, int):
-            self._ecolevel = val_ecolevel
-
-        val_childlockon = self.get_server_update_key_value(message, CHILDLOCKON_KEY)
-        if isinstance(val_childlockon, bool):
-            self._childlockon = val_childlockon
-
-        val_tempoffset = self.get_server_update_key_value(message, TEMPOFFSET_KEY)
-        if isinstance(val_tempoffset, int):
-            self._tempoffset = val_tempoffset
-
-        val_airflowmode = self.get_server_update_key_value(message, AIRFLOWMODE_KEY)
-        if isinstance(val_airflowmode, int):
-            self._airflowmode = val_airflowmode
-
-        val_rgbon = self.get_server_update_key_value(message, RGBON_KEY)
-        if isinstance(val_rgbon, bool):
-            self._rgbon = val_rgbon
-
-        val_rgbbri = self.get_server_update_key_value(message, RGB_BRI)
-        if isinstance(val_rgbbri, int):
-            self._rgbbri = val_rgbbri
-
-        val_winopenon = self.get_server_update_key_value(message, WINOPENON_KEY)
-        if isinstance(val_winopenon, bool):
-            self._winopenon = val_winopenon
-
-        val_fixed_conf = self.get_server_update_key_value(message, FIXEDCONF_KEY)
-        if isinstance(val_fixed_conf, str):
-            self._fixed_conf = val_fixed_conf
-
+    def _apply_server_fault_code(self, message) -> None:
+        """Apply the fault code of a websocket update."""
         val_fault_code = self._parse_fault_code(self.get_server_update_key_value(message, FAULT_CODE_KEY))
         if val_fault_code is not None:
             if val_fault_code != self._fault_code:

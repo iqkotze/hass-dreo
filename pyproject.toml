@@ -50,3 +50,8 @@ filename = "pyproject.toml"
 regex = true
 search = '^version = "{current_version}"'
 replace = 'version = "{new_version}"'
+
+[tool.complexipy]
+# Cognitive complexity limit per function (run: uvx complexipy custom_components/dreo)
+paths = ["custom_components/dreo"]
+max-complexity-allowed = 20
