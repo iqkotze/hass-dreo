@@ -78,11 +78,9 @@ class TestInit:
             result = asyncio.run(async_setup_entry(mock_hass, mock_entry))
 
         assert result is True
-        assert "dreo" in mock_hass.data
-        assert "pydreo_manager" in mock_hass.data["dreo"]
-        assert "platforms" in mock_hass.data["dreo"]
+        assert mock_entry.runtime_data.manager is mock_pydreo
 
-        platforms = mock_hass.data["dreo"]["platforms"]
+        platforms = mock_entry.runtime_data.platforms
         assert Platform.FAN in platforms
         assert Platform.SENSOR in platforms
         assert Platform.SWITCH in platforms
@@ -121,7 +119,7 @@ class TestInit:
             result = asyncio.run(async_setup_entry(mock_hass, mock_entry))
 
         assert result is True
-        platforms = mock_hass.data["dreo"]["platforms"]
+        platforms = mock_entry.runtime_data.platforms
         assert Platform.CLIMATE in platforms
         assert Platform.SENSOR in platforms
         assert Platform.SWITCH in platforms
@@ -160,7 +158,7 @@ class TestInit:
             result = asyncio.run(async_setup_entry(mock_hass, mock_entry))
 
         assert result is True
-        platforms = mock_hass.data["dreo"]["platforms"]
+        platforms = mock_entry.runtime_data.platforms
         assert Platform.FAN in platforms
         assert Platform.LIGHT in platforms
         assert Platform.SENSOR in platforms
@@ -197,7 +195,7 @@ class TestInit:
             result = asyncio.run(async_setup_entry(mock_hass, mock_entry))
 
         assert result is True
-        platforms = mock_hass.data["dreo"]["platforms"]
+        platforms = mock_entry.runtime_data.platforms
         assert Platform.FAN in platforms
         assert Platform.LIGHT in platforms
         assert Platform.SENSOR in platforms
@@ -236,7 +234,7 @@ class TestInit:
             result = asyncio.run(async_setup_entry(mock_hass, mock_entry))
 
         assert result is True
-        platforms = mock_hass.data["dreo"]["platforms"]
+        platforms = mock_entry.runtime_data.platforms
         assert Platform.HUMIDIFIER in platforms
         assert Platform.SENSOR in platforms
         assert Platform.SWITCH in platforms
@@ -273,7 +271,7 @@ class TestInit:
             result = asyncio.run(async_setup_entry(mock_hass, mock_entry))
 
         assert result is True
-        platforms = mock_hass.data["dreo"]["platforms"]
+        platforms = mock_entry.runtime_data.platforms
         assert Platform.HUMIDIFIER in platforms
         assert Platform.FAN in platforms
         assert Platform.SENSOR in platforms
@@ -310,7 +308,7 @@ class TestInit:
             result = asyncio.run(async_setup_entry(mock_hass, mock_entry))
 
         assert result is True
-        platforms = mock_hass.data["dreo"]["platforms"]
+        platforms = mock_entry.runtime_data.platforms
         assert Platform.SENSOR in platforms
         assert Platform.SWITCH in platforms
         assert Platform.NUMBER in platforms
@@ -348,7 +346,7 @@ class TestInit:
             result = asyncio.run(async_setup_entry(mock_hass, mock_entry))
 
         assert result is True
-        platforms = mock_hass.data["dreo"]["platforms"]
+        platforms = mock_entry.runtime_data.platforms
         assert Platform.FAN in platforms
         assert Platform.SENSOR in platforms
         assert Platform.SWITCH in platforms
@@ -417,24 +415,24 @@ class TestInit:
     def test_unload_entry(self):
         """Test async_unload_entry."""
         from custom_components.dreo import async_unload_entry
+        from custom_components.dreo.runtime import DreoRuntimeData
         from homeassistant.const import Platform
 
         mock_hass = MagicMock()
         mock_pydreo = MagicMock()
         mock_pydreo.stop_transport = MagicMock()
 
-        mock_hass.data = {"dreo": {"pydreo_manager": mock_pydreo, "platforms": {Platform.FAN, Platform.SENSOR}}}
         mock_hass.config_entries = MagicMock()
         mock_hass.config_entries.async_unload_platforms = AsyncMock(return_value=True)
 
         mock_entry = MagicMock()
+        mock_entry.runtime_data = DreoRuntimeData(manager=mock_pydreo, platforms={Platform.FAN, Platform.SENSOR})
 
         result = asyncio.run(async_unload_entry(mock_hass, mock_entry))
 
         assert result is True
         mock_pydreo.stop_transport.assert_called_once()
-        assert "dreo" not in mock_hass.data
-        mock_hass.config_entries.async_unload_platforms.assert_called_once()
+        mock_hass.config_entries.async_unload_platforms.assert_called_once_with(mock_entry, {Platform.FAN, Platform.SENSOR})
 
     def test_ha_call_later_scheduler_does_not_shadow_callback_decorator(self):
         """HA schedule_call_later must not name-shadow @callback; work must run via executor."""
@@ -522,7 +520,7 @@ class TestInit:
             result = asyncio.run(async_setup_entry(mock_hass, mock_entry))
 
         assert result is True
-        assert Platform.FAN in mock_hass.data["dreo"]["platforms"]
+        assert Platform.FAN in mock_entry.runtime_data.platforms
         warning_msgs = " ".join(str(c) for c in mock_logger.warning.call_args_list)
         assert "failed to install HA call_later scheduler" in warning_msgs
         assert "threading.Timer fallback" in warning_msgs

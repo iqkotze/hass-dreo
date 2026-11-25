@@ -19,10 +19,8 @@ from .pydreo.constant import HUMIDITY_KEY, MODE_KEY, PM25_KEY, DreoDeviceType
 
 from .haimports import *  # pylint: disable=W0401,W0614
 
-from .const import (
-    DOMAIN,
-    PYDREO_MANAGER,
-)
+from .const import DOMAIN
+from .runtime import DreoConfigEntry
 
 from .pydreo.pydreochefmaker import (
     MODE_OFF,
@@ -185,7 +183,9 @@ SENSORS: tuple[DreoSensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.ENUM,
         options=["yes", "no"],
         value_fn=lambda device: None if device.suspend is None else ("yes" if device.suspend else "no"),
-        exists_fn=lambda device: (device.type in {DreoDeviceType.HUMIDIFIER, DreoDeviceType.EVAPORATIVE_COOLER}) and device.is_feature_supported(SUSPEND_KEY),
+        exists_fn=lambda device: (
+            (device.type in {DreoDeviceType.HUMIDIFIER, DreoDeviceType.EVAPORATIVE_COOLER}) and device.is_feature_supported(SUSPEND_KEY)
+        ),
     ),
     DreoSensorEntityDescription(
         key="People Detected",
@@ -245,13 +245,13 @@ def get_entries(pydreo_devices: list[PyDreoBaseDevice]) -> list[DreoSensorHA]:
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: DreoConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Dreo Sensor platform."""
     _LOGGER.info("get_entries: Starting Dreo Sensor Platform")
 
-    pydreo_manager: PyDreo = hass.data[DOMAIN][PYDREO_MANAGER]
+    pydreo_manager: PyDreo = config_entry.runtime_data.manager
 
     async_add_entities(get_entries(pydreo_manager.devices))
 

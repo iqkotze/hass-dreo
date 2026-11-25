@@ -25,7 +25,7 @@ from .pydreo.pydreodehumidifier import (
     ERROR_CODE_WATER_EMPTY as DEHUMIDIFIER_WATER_EMPTY,
 )
 from .haimports import *  # pylint: disable=W0401,W0614
-from .const import DOMAIN, PYDREO_MANAGER
+from .runtime import DreoConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -158,12 +158,12 @@ def get_entries(pydreo_devices: list[PyDreoBaseDevice]) -> list["DreoBinarySenso
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,  # pylint: disable=unused-argument
+    config_entry: DreoConfigEntry,  # pylint: disable=unused-argument
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Dreo Binary Sensor platform."""
     _LOGGER.info("Starting Dreo Binary Sensor Platform")
-    pydreo_manager: PyDreo = hass.data[DOMAIN][PYDREO_MANAGER]
+    pydreo_manager: PyDreo = config_entry.runtime_data.manager
     async_add_entities(get_entries(pydreo_manager.devices))
 
 

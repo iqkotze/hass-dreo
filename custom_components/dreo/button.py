@@ -10,7 +10,7 @@ from .haimports import *  # pylint: disable=W0401,W0614
 from .dreobasedevice import DreoBaseDeviceHA
 from .pydreo import PyDreo, PyDreoBaseDevice
 from .pydreo.constant import DreoDeviceType
-from .const import DOMAIN, PYDREO_MANAGER
+from .runtime import DreoConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -73,13 +73,13 @@ def get_entries(pydreo_devices: list[PyDreoBaseDevice]) -> list["DreoButtonHA"]:
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: DreoConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Dreo Button platform."""
     _LOGGER.info("Starting Dreo Button Platform")
 
-    pydreo_manager: PyDreo = hass.data[DOMAIN][PYDREO_MANAGER]
+    pydreo_manager: PyDreo = config_entry.runtime_data.manager
     async_add_entities(get_entries(pydreo_manager.devices))
 
 

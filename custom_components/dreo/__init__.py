@@ -8,7 +8,8 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from .haimports import *  # pylint: disable=W0401,W0614
-from .const import DOMAIN, PYDREO_MANAGER, DREO_PLATFORMS, CONF_AUTO_RECONNECT, DEBUG_TEST_MODE
+from .runtime import DreoConfigEntry, DreoRuntimeData
+from .const import DOMAIN, CONF_AUTO_RECONNECT, DEBUG_TEST_MODE
 
 if TYPE_CHECKING:
     from .pydreo import PyDreo
@@ -132,7 +133,7 @@ def _install_ha_call_later_scheduler(
     config_entry.async_on_unload(_cancel_all_pending)
 
 
-async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, config_entry: DreoConfigEntry) -> bool:
     "HomeAssistant EntryPoint"
     _LOGGER.debug("async_setup_entry: Starting setup")
 
@@ -167,14 +168,11 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     # Prefer HA event-loop timers over raw threading.Timer for delayed device work.
     try:
         _install_ha_call_later_scheduler(hass, pydreo_manager, config_entry)
-        _LOGGER.debug(
-            "async_setup_entry: installed HA async_call_later scheduler for PyDreo"
-        )
+        _LOGGER.debug("async_setup_entry: installed HA async_call_later scheduler for PyDreo")
     except Exception as ex:  # pylint: disable=broad-except
         # Integration continues with threading.Timer fallback; surface clearly.
         _LOGGER.warning(
-            "async_setup_entry: failed to install HA call_later scheduler "
-            "(%s: %s); delayed fixedconf settle will use threading.Timer fallback",
+            "async_setup_entry: failed to install HA call_later scheduler (%s: %s); delayed fixedconf settle will use threading.Timer fallback",
             type(ex).__name__,
             ex,
         )
@@ -266,9 +264,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
 
     pydreo_manager.start_transport()
 
-    hass.data[DOMAIN] = {}
-    hass.data[DOMAIN][PYDREO_MANAGER] = pydreo_manager
-    hass.data[DOMAIN][DREO_PLATFORMS] = platforms
+    config_entry.runtime_data = DreoRuntimeData(manager=pydreo_manager, platforms=platforms)
 
     _LOGGER.debug("async_setup_entry: Platforms are: %s", platforms)
 
@@ -284,16 +280,12 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, config_entry: DreoConfigEntry) -> bool:
     """Unload a config entry."""
-    pydreo_manager = hass.data[DOMAIN][PYDREO_MANAGER]
-    if unload_ok := await hass.config_entries.async_unload_platforms(
-        config_entry,
-        hass.data[DOMAIN][DREO_PLATFORMS],
-    ):
-        hass.data.pop(DOMAIN)
+    runtime_data = config_entry.runtime_data
+    unload_ok = await hass.config_entries.async_unload_platforms(config_entry, runtime_data.platforms)
 
-    pydreo_manager.stop_transport()
+    runtime_data.manager.stop_transport()
     return unload_ok
 
 

@@ -11,7 +11,7 @@ from typing import Any
 
 from .pydreo import PyDreo
 from .haimports import *  # pylint: disable=W0401,W0614
-from .const import DOMAIN, PYDREO_MANAGER
+from .runtime import DreoConfigEntry
 
 KEYS_TO_REDACT = {
     "sn",
@@ -43,9 +43,9 @@ KEYS_TO_EXCLUDE = {
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:
+async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: DreoConfigEntry) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
-    pydreo_manager: PyDreo = hass.data[DOMAIN][PYDREO_MANAGER]
+    pydreo_manager: PyDreo = entry.runtime_data.manager
 
     return _get_diagnostics(pydreo_manager)
 

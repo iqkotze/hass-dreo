@@ -17,7 +17,7 @@ from .pydreo import PyDreo
 from .pydreo.pydreobasedevice import PyDreoBaseDevice
 from .pydreo.constant import DreoDeviceType, DreoHeaterMode, HEATER_AXIS_HORIZONTAL_SPANS, HEATER_AXIS_VERTICAL_SPANS
 
-from .const import DOMAIN, PYDREO_MANAGER
+from .runtime import DreoConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -122,13 +122,13 @@ def get_entries(pydreo_devices: list[PyDreoBaseDevice]) -> list["DreoSelectHA"]:
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: DreoConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Dreo Select platform."""
     _LOGGER.info("Starting Dreo Select Platform")
 
-    pydreo_manager: PyDreo = hass.data[DOMAIN][PYDREO_MANAGER]
+    pydreo_manager: PyDreo = config_entry.runtime_data.manager
     async_add_entities(get_entries(pydreo_manager.devices))
 
 

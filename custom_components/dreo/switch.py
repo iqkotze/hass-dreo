@@ -17,7 +17,7 @@ from .dreochefmaker import DreoChefMakerHA
 from .pydreo import PyDreo, PyDreoBaseDevice
 from .pydreo.constant import DreoDeviceType
 
-from .const import DOMAIN, PYDREO_MANAGER
+from .runtime import DreoConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -198,7 +198,7 @@ def get_entries(pydreo_devices: list[PyDreoBaseDevice]) -> list[DreoSwitchHA]:
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: DreoConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Dreo Switch platform.
@@ -209,7 +209,7 @@ async def async_setup_entry(
     _LOGGER.info("get_entries: Starting Dreo Switch Platform")
 
     # Get the PyDreo manager from Home Assistant's data storage
-    pydreo_manager: PyDreo = hass.data[DOMAIN][PYDREO_MANAGER]
+    pydreo_manager: PyDreo = config_entry.runtime_data.manager
 
     switch_entities_ha: list[SwitchEntity] = []
 

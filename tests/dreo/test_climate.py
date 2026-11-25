@@ -4,7 +4,6 @@ import asyncio
 from unittest.mock import patch, MagicMock, AsyncMock
 
 from custom_components.dreo import climate
-from custom_components.dreo.const import DOMAIN, PYDREO_MANAGER
 
 from .testdevicebase import TestDeviceBase
 from .custommocks import PyDreoDeviceMock
@@ -197,9 +196,9 @@ class TestDreoClimatePlatform(TestDeviceBase):
             mock_pydreo.devices = [heater]
 
             mock_hass = MagicMock()
-            mock_hass.data = {DOMAIN: {PYDREO_MANAGER: mock_pydreo}}
 
             mock_config_entry = MagicMock()
+            mock_config_entry.runtime_data.manager = mock_pydreo
             mock_add_entities = MagicMock()
 
             asyncio.run(climate.async_setup_entry(mock_hass, mock_config_entry, mock_add_entities))

@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 from homeassistant.components.diagnostics import REDACTED
 from custom_components.dreo.diagnostics import _redact_values, _get_diagnostics, async_get_config_entry_diagnostics, KEYS_TO_REDACT
-from custom_components.dreo.const import DOMAIN, PYDREO_MANAGER
+from custom_components.dreo.const import DOMAIN
 
 
 class TestRedactValues:
@@ -215,7 +215,7 @@ class TestAsyncGetConfigEntryDiagnostics:
     """Tests for async_get_config_entry_diagnostics function."""
 
     def test_async_get_config_entry_diagnostics(self):
-        """Test that entry point retrieves manager from hass.data and calls _get_diagnostics."""
+        """Test that entry point retrieves manager from runtime_data and calls _get_diagnostics."""
         # Create mock hass
         mock_hass = MagicMock()
 
@@ -226,11 +226,9 @@ class TestAsyncGetConfigEntryDiagnostics:
         mock_manager.devices = [mock_device]
         mock_manager.raw_response = {"devices": [{"sn": "ABC123"}]}
 
-        # Set up hass.data
-        mock_hass.data = {DOMAIN: {PYDREO_MANAGER: mock_manager}}
-
         # Create mock config entry
         mock_entry = MagicMock()
+        mock_entry.runtime_data.manager = mock_manager
 
         # Call the async function
         result = asyncio.run(async_get_config_entry_diagnostics(mock_hass, mock_entry))
@@ -257,9 +255,8 @@ class TestAsyncGetConfigEntryDiagnostics:
         mock_manager.devices = devices
         mock_manager.raw_response = {"username": "test@example.com", "devices": [{"sn": f"SN{i}"} for i in range(3)]}
 
-        mock_hass.data = {DOMAIN: {PYDREO_MANAGER: mock_manager}}
-
         mock_entry = MagicMock()
+        mock_entry.runtime_data.manager = mock_manager
 
         result = asyncio.run(async_get_config_entry_diagnostics(mock_hass, mock_entry))
 

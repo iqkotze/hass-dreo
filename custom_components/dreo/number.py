@@ -15,7 +15,7 @@ from .pydreo.pydreobasedevice import PyDreoBaseDevice
 from .pydreo.constant import DreoDeviceType, TIMER_MAX_MINUTES
 from .dreobasedevice import DreoBaseDeviceHA
 
-from .const import DOMAIN, PYDREO_MANAGER
+from .runtime import DreoConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -176,8 +176,9 @@ NUMBERS: tuple[DreoNumberEntityDescription, ...] = (
         min_value=15,
         max_value=85,
         step=1,
-        exists_fn=lambda device: device.type in {DreoDeviceType.HUMIDIFIER, DreoDeviceType.EVAPORATIVE_COOLER}
-        and device.is_feature_supported("rgbth"),
+        exists_fn=lambda device: (
+            device.type in {DreoDeviceType.HUMIDIFIER, DreoDeviceType.EVAPORATIVE_COOLER} and device.is_feature_supported("rgbth")
+        ),
     ),
     DreoNumberEntityDescription(
         key="Ambient Light Threshold High",
@@ -187,8 +188,9 @@ NUMBERS: tuple[DreoNumberEntityDescription, ...] = (
         min_value=15,
         max_value=85,
         step=1,
-        exists_fn=lambda device: device.type in {DreoDeviceType.HUMIDIFIER, DreoDeviceType.EVAPORATIVE_COOLER}
-        and device.is_feature_supported("rgbth"),
+        exists_fn=lambda device: (
+            device.type in {DreoDeviceType.HUMIDIFIER, DreoDeviceType.EVAPORATIVE_COOLER} and device.is_feature_supported("rgbth")
+        ),
     ),
     DreoNumberEntityDescription(
         key="Timer On",
@@ -280,13 +282,13 @@ def get_device_range(device: PyDreoBaseDevice, number_definition: DreoNumberEnti
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: DreoConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Dreo Number platform."""
     _LOGGER.info("async_setup_entry: Starting Dreo Number Platform")
 
-    pydreo_manager: PyDreo = hass.data[DOMAIN][PYDREO_MANAGER]
+    pydreo_manager: PyDreo = config_entry.runtime_data.manager
 
     async_add_entities(get_entries(pydreo_manager.devices))
 

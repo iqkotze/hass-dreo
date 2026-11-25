@@ -8,7 +8,7 @@ from .pydreo import PyDreo, PyDreoBaseDevice
 from .pydreo.constant import DreoDeviceType
 from .dreofan import DreoFanHA
 
-from .const import DOMAIN, PYDREO_MANAGER
+from .runtime import DreoConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ def get_entries(pydreo_devices: list[PyDreoBaseDevice]) -> list[DreoFanHA]:
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,  # pylint: disable=unused-argument
+    config_entry: DreoConfigEntry,  # pylint: disable=unused-argument
     async_add_entities: AddEntitiesCallback,
     _discovery_info=None,
 ) -> None:
@@ -42,7 +42,7 @@ async def async_setup_entry(
     _LOGGER.info("get_entries: Starting Dreo Fan Platform")
     _LOGGER.debug("get_entries: async_setup_entry")
 
-    pydreo_manager: PyDreo = hass.data[DOMAIN][PYDREO_MANAGER]
+    pydreo_manager: PyDreo = config_entry.runtime_data.manager
 
     fan_entities_ha = get_entries(pydreo_manager.devices)
 

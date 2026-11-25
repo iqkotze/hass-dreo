@@ -99,7 +99,6 @@ class TestDreoHumidifier(TestDeviceBase):
         """Test async_setup_entry sets up humidifier/dehumidifier entities from hass.data."""
         import asyncio
         from unittest.mock import MagicMock
-        from custom_components.dreo.const import DOMAIN, PYDREO_MANAGER
 
         mocked_devices = [
             self.create_mock_device(name="Test Humidifier", type="Humidifier"),
@@ -111,9 +110,9 @@ class TestDreoHumidifier(TestDeviceBase):
         mock_pydreo.devices = mocked_devices
 
         mock_hass = MagicMock()
-        mock_hass.data = {DOMAIN: {PYDREO_MANAGER: mock_pydreo}}
 
         mock_config_entry = MagicMock()
+        mock_config_entry.runtime_data.manager = mock_pydreo
         mock_add_entities = MagicMock()
 
         asyncio.run(humidifier.async_setup_entry(mock_hass, mock_config_entry, mock_add_entities))

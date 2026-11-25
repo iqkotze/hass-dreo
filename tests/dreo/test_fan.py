@@ -310,7 +310,6 @@ class TestDreoFanHA(TestDeviceBase):
         """Test async_setup_entry sets up fan entities from hass.data."""
         import asyncio
         from unittest.mock import MagicMock
-        from custom_components.dreo.const import DOMAIN, PYDREO_MANAGER
 
         with patch(PATCH_UPDATE_HA_STATE):
             mocked_fan = self.create_mock_device(name="Test Fan", type="Tower Fan")
@@ -319,9 +318,9 @@ class TestDreoFanHA(TestDeviceBase):
             mock_pydreo.devices = [mocked_fan]
 
             mock_hass = MagicMock()
-            mock_hass.data = {DOMAIN: {PYDREO_MANAGER: mock_pydreo}}
 
             mock_config_entry = MagicMock()
+            mock_config_entry.runtime_data.manager = mock_pydreo
             mock_add_entities = MagicMock()
 
             asyncio.run(fan.async_setup_entry(mock_hass, mock_config_entry, mock_add_entities))

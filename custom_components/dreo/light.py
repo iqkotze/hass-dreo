@@ -17,7 +17,7 @@ from .pydreo.pydreoairpurifier import PyDreoAirPurifier
 from .pydreo.constant import DreoDeviceType  # pylint: disable=C0415
 from .dreobasedevice import DreoBaseDeviceHA
 
-from .const import DOMAIN, PYDREO_MANAGER
+from .runtime import DreoConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -42,10 +42,7 @@ def get_entries(pydreo_devices: list[PyDreoBaseDevice]) -> list[DreoLightHA]:
 
         # Keep the 530S on one model-specific light entity. Other purifiers and
         # ceiling-fan RGBIC paths continue through their existing branches.
-        if (
-            isinstance(pydreo_device, PyDreoAirPurifier)
-            and pydreo_device.device_definition.supports_rgbic_mode_light
-        ):
+        if isinstance(pydreo_device, PyDreoAirPurifier) and pydreo_device.device_definition.supports_rgbic_mode_light:
             light_ha_collection.append(Dreo530SRGBICLightHA(pydreo_device))
             continue
 
@@ -83,7 +80,7 @@ def get_entries(pydreo_devices: list[PyDreoBaseDevice]) -> list[DreoLightHA]:
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: DreoConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Dreo Light platform.
@@ -95,7 +92,7 @@ async def async_setup_entry(
     _LOGGER.info("get_entries: Starting Dreo Light Platform")
 
     # Get the PyDreo manager from Home Assistant's data storage
-    pydreo_manager: PyDreo = hass.data[DOMAIN][PYDREO_MANAGER]
+    pydreo_manager: PyDreo = config_entry.runtime_data.manager
 
     # Discover and register all light entities
     async_add_entities(get_entries(pydreo_manager.devices))
@@ -335,9 +332,7 @@ class Dreo530SRGBICLightHA(DreoLightHA):
         # A reported initial state is required before the base light setters can
         # write power or brightness. Effect selection remains independent: its
         # own mode setter safely declines when rgbmode has not been reported.
-        can_write_light_state = self.pydreo_device.rgbon is not None and (
-            ATTR_BRIGHTNESS not in kwargs or self.pydreo_device.rgbbri is not None
-        )
+        can_write_light_state = self.pydreo_device.rgbon is not None and (ATTR_BRIGHTNESS not in kwargs or self.pydreo_device.rgbbri is not None)
         if can_write_light_state:
             super().turn_on(**kwargs)
 
@@ -370,9 +365,7 @@ class DreoRGBLightHA(DreoLightHA):
             rgb_brightness_scale = details.device_ranges["atm_brightness_range"]
 
         # Pass RGB-specific configuration to parent - uses "atm_" prefixed attributes
-        super().__init__(
-            pyDreoDevice, light_on_attr="atm_light_on", brightness_attr="atm_brightness", brightness_scale=rgb_brightness_scale
-        )
+        super().__init__(pyDreoDevice, light_on_attr="atm_light_on", brightness_attr="atm_brightness", brightness_scale=rgb_brightness_scale)
 
         # Override attributes for RGB light to distinguish from main light
         self.entity_description = EntityDescription("RGB Light")
@@ -450,9 +443,7 @@ class DreoRGBICLightHA(DreoLightHA):
         atm_bri_range = getattr(pyDreoDevice, "atm_brightness_range", (1, 100))
 
         # Pass RGBIC-specific configuration to parent
-        super().__init__(
-            pyDreoDevice, light_on_attr="atm_light_on", brightness_attr="atm_brightness", brightness_scale=atm_bri_range
-        )
+        super().__init__(pyDreoDevice, light_on_attr="atm_light_on", brightness_attr="atm_brightness", brightness_scale=atm_bri_range)
 
         # Override attributes for RGBIC light
         self.entity_description = EntityDescription("RGBIC Light")
@@ -463,9 +454,7 @@ class DreoRGBICLightHA(DreoLightHA):
         # Some RGBIC models support direct RGB color commands in addition to effects.
         # Keep other RGBIC devices in BRIGHTNESS mode (effects + brightness only).
         self._uses_rgbic_api = pyDreoDevice.is_feature_supported("rgbic_effect_api")
-        self._supports_direct_rgb = (
-            pyDreoDevice.is_feature_supported("atm_color_rgb_write") or self._uses_rgbic_api
-        )
+        self._supports_direct_rgb = pyDreoDevice.is_feature_supported("atm_color_rgb_write") or self._uses_rgbic_api
         self._color_mode = ColorMode.RGB if self._supports_direct_rgb else ColorMode.BRIGHTNESS
 
         # Determine which command mechanism to use

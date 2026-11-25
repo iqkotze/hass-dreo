@@ -12,10 +12,8 @@ from .pydreo.constant import DreoDeviceType
 from .dreoairconditioner import DreoAirConditionerHA
 from .dreoheater import DreoHeaterHA
 
-from .const import (
-    DOMAIN,
-    PYDREO_MANAGER,
-)
+from .const import DOMAIN
+from .runtime import DreoConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -42,14 +40,14 @@ def get_entries(
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: DreoConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Dreo Climate platform."""
     _LOGGER.info("get_entries: Starting Dreo Climate Platform")
     _LOGGER.debug("get_entries: async_setup_entry")
 
-    pydreo_manager: PyDreo = hass.data[DOMAIN][PYDREO_MANAGER]
+    pydreo_manager: PyDreo = config_entry.runtime_data.manager
 
     climate_entities_ha = get_entries(pydreo_manager.devices)
 

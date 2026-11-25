@@ -11,7 +11,7 @@ from .dreobasedevice import DreoBaseDeviceHA
 from .dreodehumidifier import DreoDehumidifierHA
 from .dreohumidifier import DreoHumidifierHA
 
-from .const import DOMAIN, PYDREO_MANAGER
+from .runtime import DreoConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ def get_entries(pydreo_devices: list[PyDreoBaseDevice]) -> list:
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,  # pylint: disable=unused-argument
+    config_entry: DreoConfigEntry,  # pylint: disable=unused-argument
     async_add_entities: AddEntitiesCallback,
     _discovery_info=None,
 ) -> None:
@@ -41,7 +41,7 @@ async def async_setup_entry(
     _LOGGER.info("get_entries: Starting Dreo Humidifier Platform")
     _LOGGER.debug("Dreo Humidifier:async_setup_entry")
 
-    pydreo_manager: PyDreo = hass.data[DOMAIN][PYDREO_MANAGER]
+    pydreo_manager: PyDreo = config_entry.runtime_data.manager
 
     humidifier_entities_ha = get_entries(pydreo_manager.devices)
 
