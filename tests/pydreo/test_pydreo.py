@@ -173,6 +173,18 @@ class TestPyDreoProcessDevices(TestBase):
         assert len(self.pydreo_manager.devices) == 1
         assert isinstance(self.pydreo_manager.devices[0], PyDreoUnknownDevice)
 
+    def test_device_without_model_is_unknown_not_previous_type(self):
+        """A device without a model becomes an unknown device instead of reusing the previous device's details."""
+        devices = [
+            {"deviceId": "fan1", "sn": "SN1", "deviceName": "Tower Fan", "model": "DR-HTF001S"},
+            {"deviceId": "nomodel", "sn": "SN2", "deviceName": "No Model"},
+        ]
+        result = self.pydreo_manager._process_devices(devices)
+        assert result is True
+        assert len(self.pydreo_manager.devices) == 2
+        assert isinstance(self.pydreo_manager.devices[0], PyDreoTowerFan)
+        assert isinstance(self.pydreo_manager.devices[1], PyDreoUnknownDevice)
+
     def test_known_model_prefix_match(self):
         """Test known model prefix creates correct device type."""
         devices = [

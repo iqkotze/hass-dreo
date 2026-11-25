@@ -249,8 +249,8 @@ class PyDreo:  # pylint: disable=function-redefined
 
                 _LOGGER.debug("_process_devices: Found device with model %s", model)
 
-                if model is not None:
-                    device_details = self._lookup_device_details(model)
+                # No model: treat as unknown instead of reusing the previous device's details.
+                device_details = self._lookup_device_details(model) if model is not None else None
 
                 # If device_details is None at this point, we have an unknown device model.
                 # Unsupported/Unknown Device. Load the state, but store it in an "unsupported objects"
