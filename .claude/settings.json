@@ -1,0 +1,20 @@
+{
+  "env": {
+    "CLAUDE_CODE_DISABLE_1M_CONTEXT": "1"
+  },
+  "hooks": {
+    "PreCompact": [
+      {
+        "matcher": "manual|auto",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/precompact-snapshot.sh",
+            "timeout": 60,
+            "statusMessage": "Saving snapshot..."
+          }
+        ]
+      }
+    ]
+  }
+}
