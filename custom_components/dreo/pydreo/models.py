@@ -582,11 +582,11 @@ SUPPORTED_DEVICES = {
     "DR-HSH004S": DreoHeaterDeviceDetails(
         swing_modes=[SWING_OFF, SWING_ON],
     ),
-    # Temperature offset measured by the owner (issue #952): the app sets -2 to +2 °C, stored as "tempoffset"
-    # in °F (2 per °C), and the reported temperature already includes it.
+    # Temperature offset (issue #952): the app only offers -2 to +2 °C, stored as "tempoffset"
+    # in °F (2 per °C). The range is widened to -4 to +4 °C (-8..8 °F); firmware support is unverified.
     "DR-HSH006S": DreoHeaterDeviceDetails(
         swing_modes=[SWING_OFF, SWING_ON],
-        device_ranges={TEMPERATURE_OFFSET_RANGE: (-4, 4)},
+        device_ranges={TEMPERATURE_OFFSET_RANGE: (-8, 8)},
         temperature_includes_offset=True,
     ),
     "DR-HSH009S": DreoHeaterDeviceDetails(
