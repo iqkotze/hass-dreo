@@ -21,6 +21,9 @@ from .runtime import DreoConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
+# State comes via WebSocket push; commands go through the lock-protected PyDreo command outbox, so actions need no limit.
+PARALLEL_UPDATES = 0
+
 
 @dataclass
 class DreoSwitchEntityDescription(SwitchEntityDescription):

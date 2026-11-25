@@ -15,6 +15,9 @@ from .runtime import DreoConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
+# State comes via WebSocket push; commands go through the lock-protected PyDreo command outbox, so actions need no limit.
+PARALLEL_UPDATES = 0
+
 
 def get_entries(pydreo_devices: list[PyDreoBaseDevice]) -> list:
     """Get the Dreo Humidifier entities for the devices."""

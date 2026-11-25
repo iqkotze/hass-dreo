@@ -29,6 +29,9 @@ from .runtime import DreoConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
+# State comes via WebSocket push; no polling to limit.
+PARALLEL_UPDATES = 0
+
 
 @dataclass
 class DreoBinarySensorEntityDescription(BinarySensorEntityDescription):
