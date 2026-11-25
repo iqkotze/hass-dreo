@@ -5,6 +5,7 @@ import logging
 from unittest.mock import patch, call
 import pytest
 from custom_components.dreo.pydreo.pydreoheater import FAULT_CODE_KEY, FAULT_OK, FAULT_OTHER, FAULT_TIP_OVER
+from custom_components.dreo.pydreo import DreoInvalidValueError
 from .imports import *  # pylint: disable=W0401,W0614
 from .testbase import TestBase, PATCH_SEND_COMMAND
 
@@ -400,7 +401,9 @@ class TestPyDreoHeater(TestBase):
             heater.temperature_offset = -10
             mock_send_command.assert_called_once_with(heater, {TEMPOFFSET_KEY: -10})
         with patch(PATCH_SEND_COMMAND) as mock_send_command:
-            heater.temperature_offset = 11
+            with pytest.raises(DreoInvalidValueError) as exc_info:
+                heater.temperature_offset = 11
+            assert (exc_info.value.name, exc_info.value.value, exc_info.value.valid_range) == ("temperature_offset", 11, (-10, 10))
             mock_send_command.assert_not_called()
 
         assert heater.mcu_firmware_version == "1.3.6"
@@ -744,8 +747,7 @@ class TestPyDreoHeater(TestBase):
         # Mode must NOT be reset to OFF — it must keep the last active mode so
         # that hvac_mode correctly shows HEAT when the device powers back on.
         assert heater.mode == DreoHeaterMode.HOTAIR, (
-            "handle_server_update with poweron=False must preserve the last "
-            "active mode instead of resetting it to 'off'"
+            "handle_server_update with poweron=False must preserve the last active mode instead of resetting it to 'off'"
         )
 
     def test_HSH009S_htalevel_range_validation(self):  # pylint: disable=invalid-name
@@ -760,12 +762,15 @@ class TestPyDreoHeater(TestBase):
 
         # Value below range should be rejected (no command sent)
         with patch(PATCH_SEND_COMMAND) as mock_send_command:
-            heater.htalevel = 0
+            with pytest.raises(DreoInvalidValueError):
+                heater.htalevel = 0
             mock_send_command.assert_not_called()
 
         # Value above range should be rejected (no command sent)
         with patch(PATCH_SEND_COMMAND) as mock_send_command:
-            heater.htalevel = 4
+            with pytest.raises(DreoInvalidValueError) as exc_info:
+                heater.htalevel = 4
+            assert (exc_info.value.name, exc_info.value.value, exc_info.value.valid_range) == ("htalevel", 4, (1, 3))
             mock_send_command.assert_not_called()
 
         # Value within range should be accepted
@@ -785,12 +790,15 @@ class TestPyDreoHeater(TestBase):
 
         # Value below range should be rejected
         with patch(PATCH_SEND_COMMAND) as mock_send_command:
-            heater.ecolevel = eco_range[0] - 1
+            with pytest.raises(DreoInvalidValueError) as exc_info:
+                heater.ecolevel = eco_range[0] - 1
+            assert (exc_info.value.name, exc_info.value.value, exc_info.value.valid_range) == ("ecolevel", eco_range[0] - 1, tuple(eco_range))
             mock_send_command.assert_not_called()
 
         # Value above range should be rejected
         with patch(PATCH_SEND_COMMAND) as mock_send_command:
-            heater.ecolevel = eco_range[1] + 1
+            with pytest.raises(DreoInvalidValueError):
+                heater.ecolevel = eco_range[1] + 1
             mock_send_command.assert_not_called()
 
         # Boundary values should be accepted
@@ -798,6 +806,18 @@ class TestPyDreoHeater(TestBase):
         with patch(PATCH_SEND_COMMAND) as mock_send_command:
             heater.ecolevel = eco_range[0]
             mock_send_command.assert_called_once_with(heater, {ECOLEVEL_KEY: eco_range[0]})
+
+    def test_HSH009S_temperature_offset_unsupported_raises(self):  # pylint: disable=invalid-name
+        """#6 K2: temperature_offset on a device without offset support raises with valid_range None."""
+        self.get_devices_file_name = "get_devices_HSH009S.json"
+        self.pydreo_manager.load_devices()
+        heater = self.pydreo_manager.devices[0]
+        assert heater.temperature_offset_range is None
+        with patch(PATCH_SEND_COMMAND) as mock_send_command:
+            with pytest.raises(DreoInvalidValueError) as exc_info:
+                heater.temperature_offset = 1
+            assert (exc_info.value.name, exc_info.value.value, exc_info.value.valid_range) == ("temperature_offset", 1, None)
+            mock_send_command.assert_not_called()
 
     def test_HSH009S_timer_parsing_safe(self):  # pylint: disable=invalid-name
         """Test that timer parsing handles None and missing 'du' gracefully."""
@@ -914,7 +934,8 @@ class TestPyDreoHeater(TestBase):
             heater.htalevel = 5
             mock_send_command.assert_called_once_with(heater, {HTALEVEL_KEY: 5})
         with patch(PATCH_SEND_COMMAND) as mock_send_command:
-            heater.htalevel = 6
+            with pytest.raises(DreoInvalidValueError):
+                heater.htalevel = 6
             mock_send_command.assert_not_called()
 
         # Fan sub-modes and speed
@@ -929,7 +950,11 @@ class TestPyDreoHeater(TestBase):
         heater.handle_server_update({REPORTED_KEY: {COOLLEVEL_KEY: 12}})
         assert heater.coollevel == 12
         with patch(PATCH_SEND_COMMAND) as mock_send_command:
-            heater.coollevel = 13
+            with pytest.raises(DreoInvalidValueError) as exc_info:
+                heater.coollevel = 13
+            assert exc_info.value.name == "coollevel"
+            assert exc_info.value.value == 13
+            assert exc_info.value.valid_range == tuple(heater._coollevel_range)
             mock_send_command.assert_not_called()
 
         # Horizontal oscillation: on/off, "left,right" range, fixed direction

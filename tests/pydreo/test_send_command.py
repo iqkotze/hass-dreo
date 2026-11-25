@@ -51,7 +51,10 @@ class TestSendCommand(TestBase):
                 {"devicesn": fan.serial_number, "method": "control-reply", "reported": {POWERON_KEY: True}}
             )
 
-        with patch(PATCH_TRANSPORT_SEND, side_effect=simulate_control_reply_ack) as mock_transport, patch(f"{PATCH_BASE_PATH}._COMMAND_ACK_TIMEOUT", 0.1):
+        with (
+            patch(PATCH_TRANSPORT_SEND, side_effect=simulate_control_reply_ack) as mock_transport,
+            patch(f"{PATCH_BASE_PATH}._COMMAND_ACK_TIMEOUT", 0.1),
+        ):
             fan.is_on = True
             assert mock_transport.call_count == 1
 
@@ -95,7 +98,11 @@ class TestSendCommand(TestBase):
 
         def simulate_rejection(content):
             manager._transport_consume_message(
-                {"devicesn": fan.serial_number, "method": "control-reply", "reported": {"error_msg": "instruction validate failed", "error_code": 500003}}
+                {
+                    "devicesn": fan.serial_number,
+                    "method": "control-reply",
+                    "reported": {"error_msg": "instruction validate failed", "error_code": 500003},
+                }
             )
 
         with (
@@ -253,3 +260,14 @@ class TestAuthRegion(TestBase):
         """Test EU region returns EU API server."""
         self.pydreo_manager.auth_region = "EU"
         assert self.pydreo_manager.api_server_region == "eu"
+
+
+def test_invalid_value_error_attributes_and_message():
+    """#6 K1: DreoInvalidValueError is a ValueError with name/value/valid_range and a readable message."""
+    from custom_components.dreo.pydreo import DreoInvalidValueError
+
+    err = DreoInvalidValueError("htalevel", 9, (1, 3))
+    assert isinstance(err, ValueError)
+    assert (err.name, err.value, err.valid_range) == ("htalevel", 9, (1, 3))
+    assert "htalevel" in str(err) and "(1, 3)" in str(err)
+    assert DreoInvalidValueError("x", 1).valid_range is None

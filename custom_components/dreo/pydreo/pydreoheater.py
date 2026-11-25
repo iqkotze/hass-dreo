@@ -3,6 +3,7 @@
 import logging
 from typing import TYPE_CHECKING, Dict
 
+from .exceptions import DreoInvalidValueError
 from .constant import (
     HTALEVEL_KEY,
     TEMPERATURE_KEY,
@@ -208,8 +209,7 @@ class PyDreoHeater(PyDreoBaseDevice):
         htalevel = int(htalevel)  # ensure it's an int
         _LOGGER.debug("htalevel: htalevel.setter(%s, %s)", self.name, htalevel)
         if not (self._device_definition.device_ranges[HEAT_RANGE][0] <= htalevel <= self._device_definition.device_ranges[HEAT_RANGE][1]):
-            _LOGGER.error("htalevel: Heat level %s is not in the acceptable range: %s", htalevel, self._device_definition.device_ranges[HEAT_RANGE])
-            return
+            raise DreoInvalidValueError("htalevel", htalevel, tuple(self._device_definition.device_ranges[HEAT_RANGE]))
         if self._htalevel == htalevel:
             _LOGGER.debug("htalevel: htalevel - value already %s, skipping command", htalevel)
             return
@@ -230,10 +230,7 @@ class PyDreoHeater(PyDreoBaseDevice):
         """Set the target temperature."""
         _LOGGER.debug("ecolevel: ecolevel(%s)", ecolevel)
         if not (self._device_definition.device_ranges[ECOLEVEL_RANGE][0] <= ecolevel <= self._device_definition.device_ranges[ECOLEVEL_RANGE][1]):
-            _LOGGER.error(
-                "ecolevel: Target Temperature %s is not in the acceptable range: %s", ecolevel, self._device_definition.device_ranges[ECOLEVEL_RANGE]
-            )
-            return
+            raise DreoInvalidValueError("ecolevel", ecolevel, tuple(self._device_definition.device_ranges[ECOLEVEL_RANGE]))
         if self._ecolevel == ecolevel:
             _LOGGER.debug("ecolevel: ecolevel - value already %s, skipping command", ecolevel)
             return
@@ -286,11 +283,9 @@ class PyDreoHeater(PyDreoBaseDevice):
         value = int(value)
         offset_range = self.temperature_offset_range
         if offset_range is None:
-            _LOGGER.error("temperature_offset: Attempting to set temperature offset on a device that doesn't support it.")
-            return
+            raise DreoInvalidValueError("temperature_offset", value, None)
         if not offset_range[0] <= value <= offset_range[1]:
-            _LOGGER.error("temperature_offset: Offset %s is not in the acceptable range: %s", value, offset_range)
-            return
+            raise DreoInvalidValueError("temperature_offset", value, tuple(offset_range))
         if self._tempoffset == value:
             _LOGGER.debug("temperature_offset: temperature_offset - value already %s, skipping command", value)
             return
@@ -670,8 +665,7 @@ class PyDreoHeater(PyDreoBaseDevice):
             _LOGGER.error("coollevel: Attempting to set fan speed on a device that doesn't support it.")
             raise ValueError("Attempting to set fan speed on a device that doesn't support it.")
         if not (self._coollevel_range[0] <= coollevel <= self._coollevel_range[1]):
-            _LOGGER.error("coollevel: Fan speed %s is not in the acceptable range: %s", coollevel, self._coollevel_range)
-            return
+            raise DreoInvalidValueError("coollevel", coollevel, tuple(self._coollevel_range))
         if self._coollevel == coollevel:
             _LOGGER.debug("coollevel: coollevel - value already %s, skipping command", coollevel)
             return

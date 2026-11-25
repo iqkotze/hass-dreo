@@ -3,6 +3,7 @@
 import logging
 from typing import TYPE_CHECKING, Dict
 
+from .exceptions import DreoInvalidValueError
 from .constant import (
     POWERON_KEY,
     FANON_KEY,
@@ -163,8 +164,7 @@ class PyDreoFanBase(PyDreoBaseDevice):
     def fan_speed(self, fan_speed: int):
         """Set the fan speed."""
         if fan_speed < self._speed_range[0] or fan_speed > self._speed_range[1]:
-            _LOGGER.error("fan_speed: Fan speed %s is not in the acceptable range: %s", fan_speed, self._speed_range)
-            raise ValueError(f"fan_speed must be between {self._speed_range[0]} and {self._speed_range[1]}")
+            raise DreoInvalidValueError("fan_speed", fan_speed, tuple(self._speed_range))
         if self._fan_speed == fan_speed and self._is_on:
             _LOGGER.debug("fan_speed: fan_speed - value already %s, skipping command", fan_speed)
             return

@@ -12,6 +12,7 @@ from typing import Callable, Optional, Tuple, TypeAlias
 from asyncio.exceptions import CancelledError
 
 from .constant import *
+from .exceptions import DreoCommandRejectedError, DreoInvalidValueError  # noqa: F401
 from .helpers import Helpers
 from .models import *
 from .commandtransport import CommandTransport
@@ -56,10 +57,6 @@ _STATE_METHOD_NAMES = {"report", "control-report", "device-online"}
 # change rather than as state.
 _DEVICE_OFFLINE_METHOD = "device-offline"
 _DEVICE_ONLINE_METHOD = "device-online"
-
-
-class DreoCommandRejectedError(Exception):
-    """The Dreo server rejected a command (e.g. error 500003, "instruction validate failed")."""
 
 
 _DREO_DEVICE_TYPE_TO_CLASS = {

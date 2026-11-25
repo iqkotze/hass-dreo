@@ -6,6 +6,8 @@ from unittest.mock import patch
 import pytest
 from .imports import *  # pylint: disable=W0401,W0614
 from .testbase import TestBase, PATCH_SEND_COMMAND
+from custom_components.dreo.pydreo import DreoInvalidValueError
+from custom_components.dreo.pydreo.constant import TIMER_MAX_MINUTES
 from custom_components.dreo.pydreo.pydreofanbase import PyDreoFanBase
 
 logger = logging.getLogger(__name__)
@@ -734,7 +736,10 @@ class TestPyDreoFanBase(TestBase):
         fan = self._load_htf005s()
         fan.update_state({TIMERON_KEY: {"state": {"du": 0}}})
 
-        with patch("custom_components.dreo.pydreo.pydreobasedevice.time.time", return_value=1793141451.360), patch(PATCH_SEND_COMMAND) as mock_send_command:
+        with (
+            patch("custom_components.dreo.pydreo.pydreobasedevice.time.time", return_value=1793141451.360),
+            patch(PATCH_SEND_COMMAND) as mock_send_command,
+        ):
             fan.timer_on = 30
             mock_send_command.assert_called_once_with(fan, {TIMERON_KEY: {"ts": 1793141451, "du": 30}})
 
@@ -752,7 +757,10 @@ class TestPyDreoFanBase(TestBase):
         fan = self._load_htf005s()
         fan.update_state({TIMEROFF_KEY: {"state": {"du": 0}}})
 
-        with patch("custom_components.dreo.pydreo.pydreobasedevice.time.time", return_value=1793141533.700), patch(PATCH_SEND_COMMAND) as mock_send_command:
+        with (
+            patch("custom_components.dreo.pydreo.pydreobasedevice.time.time", return_value=1793141533.700),
+            patch(PATCH_SEND_COMMAND) as mock_send_command,
+        ):
             fan.timer_off = 480
             mock_send_command.assert_called_once_with(fan, {TIMEROFF_KEY: {"ts": 1793141533, "du": 480}})
 
@@ -761,7 +769,10 @@ class TestPyDreoFanBase(TestBase):
         """Setting an active timer to zero sends a zero duration."""
         fan = self._load_htf005s()
         fan.update_state({key: {"state": {"du": 2}}})
-        with patch("custom_components.dreo.pydreo.pydreobasedevice.time.time", return_value=1793141533.7), patch(PATCH_SEND_COMMAND) as mock_send_command:
+        with (
+            patch("custom_components.dreo.pydreo.pydreobasedevice.time.time", return_value=1793141533.7),
+            patch(PATCH_SEND_COMMAND) as mock_send_command,
+        ):
             setattr(fan, timer, 0)
             mock_send_command.assert_called_once_with(fan, {key: {"ts": 1793141533, "du": 0}})
 
@@ -794,7 +805,21 @@ class TestPyDreoFanBase(TestBase):
         fan.update_state({TIMERON_KEY: {"state": {"du": 0}}})
 
         with patch(PATCH_SEND_COMMAND) as mock_send_command:
-            fan.timer_on = 1000
+            with pytest.raises(DreoInvalidValueError) as exc_info:
+                fan.timer_on = 1000
+            assert exc_info.value.name == "timer_on"
+            assert exc_info.value.value == 1000
+            assert exc_info.value.valid_range == (0, TIMER_MAX_MINUTES)
+            mock_send_command.assert_not_called()
+
+    def test_fan_speed_setter_rejects_out_of_range(self):
+        """#6 K4: fan_speed setter raises DreoInvalidValueError and sends no command."""
+        fan = self._load_htf005s()
+        low, high = fan.speed_range
+        with patch(PATCH_SEND_COMMAND) as mock_send_command:
+            with pytest.raises(DreoInvalidValueError) as exc_info:
+                fan.fan_speed = high + 1
+            assert (exc_info.value.name, exc_info.value.value, exc_info.value.valid_range) == ("fan_speed", high + 1, (low, high))
             mock_send_command.assert_not_called()
 
     def test_is_feature_supported_timer_on_off(self):

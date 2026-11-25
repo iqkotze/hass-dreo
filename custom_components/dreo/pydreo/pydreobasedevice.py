@@ -7,6 +7,7 @@ from typing import Dict
 from typing import TYPE_CHECKING
 
 from .commandoutbox import CommandOutbox, OutboxTiming
+from .exceptions import DreoInvalidValueError
 from .constant import (
     REPORTED_KEY,
     POWERON_KEY,
@@ -323,8 +324,7 @@ class PyDreoBaseDevice:
             raise NotImplementedError(f"{self.__class__.__name__}: Attempting to set {name} on a device that doesn't support it.")
         value = int(value)
         if not 0 <= value <= TIMER_MAX_MINUTES:
-            _LOGGER.error("%s: Timer duration %s is not in the acceptable range: (0, %s)", name, value, TIMER_MAX_MINUTES)
-            return
+            raise DreoInvalidValueError(name, value, (0, TIMER_MAX_MINUTES))
         if current == value:
             _LOGGER.debug("%s: value already %s, skipping command", name, value)
             return
