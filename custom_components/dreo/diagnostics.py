@@ -11,6 +11,7 @@ from typing import Any
 
 from .pydreo import PyDreo
 from .haimports import *  # pylint: disable=W0401,W0614
+from .const import DOMAIN
 from .runtime import DreoConfigEntry
 
 KEYS_TO_REDACT = {
