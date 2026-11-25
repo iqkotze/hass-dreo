@@ -4,6 +4,7 @@
 from unittest.mock import patch
 
 from custom_components.dreo import switch
+from custom_components.dreo.pydreo.constant import DreoDeviceType
 from custom_components.dreo.switch import DreoSwitchHA, DreoSwitchEntityDescription, SWITCHES
 
 from .testdevicebase import TestDeviceBase
@@ -57,9 +58,20 @@ class TestDreoSwitchHA(TestDeviceBase):
             features[sw.attr_name] = False
 
         device = self.create_mock_device(name="Full Feature Device", serial_number="FULL001", features=features)
+        device.type = DreoDeviceType.HEATER  # The Power switch is heater only
 
         entities = switch.get_entries([device])
         assert len(entities) == len(SWITCHES)
+
+    def test_power_switch_only_for_heaters(self):
+        """The Power switch exists for heaters but not for other devices with a poweron attribute."""
+        fan = self.create_mock_device(name="Test Fan", serial_number="FAN002", features={"poweron": True})
+        fan.type = DreoDeviceType.TOWER_FAN
+        heater = self.create_mock_device(name="Test Heater", serial_number="HEAT002", features={"poweron": True})
+        heater.type = DreoDeviceType.HEATER
+
+        assert switch.get_entries([fan]) == []
+        assert [e.entity_description.key for e in switch.get_entries([heater])] == ["Power"]
 
     def test_switch_entity_properties(self):
         """Test the switch entity basic properties."""

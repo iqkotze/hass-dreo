@@ -141,6 +141,9 @@
       "childlockon": {
         "name": "Sécurité enfant"
       },
+      "heater_power": {
+        "name": "Marche/arrêt"
+      },
       "locatemeon": {
         "name": "Capteur de présence"
       },

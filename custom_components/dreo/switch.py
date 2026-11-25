@@ -6,6 +6,7 @@
 # pylint: disable=W0613
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 from dataclasses import dataclass
 import logging
@@ -32,6 +33,7 @@ class DreoSwitchEntityDescription(SwitchEntityDescription):
 
     attr_name: str = None  # Name of the device attribute (e.g., "childlockon")
     icon: str = None  # MDI icon identifier (e.g., "mdi:lock")
+    exists_fn: Callable[[PyDreoBaseDevice], bool] = lambda _device: True  # Extra check besides the attribute
 
 
 # Master list of all possible switch types supported by Dreo devices
@@ -92,6 +94,14 @@ SWITCHES: tuple[DreoSwitchEntityDescription, ...] = (
         icon="mdi:window-open-variant",
     ),
     DreoSwitchEntityDescription(key="PTC", translation_key="ptcon", attr_name="ptcon", icon="mdi:help"),
+    # Heaters only: the on/off state is otherwise hidden in the climate entity's HVAC modes.
+    DreoSwitchEntityDescription(
+        key="Power",
+        translation_key="heater_power",
+        attr_name="poweron",
+        icon="mdi:power",
+        exists_fn=lambda device: device.type == DreoDeviceType.HEATER,
+    ),
     DreoSwitchEntityDescription(
         key="Child Lock",
         translation_key="childlockon",
@@ -173,7 +183,7 @@ def get_entries(pydreo_devices: list[PyDreoBaseDevice]) -> list[DreoSwitchHA]:
             _LOGGER.debug("get_entries: checking attribute: %s on %s", switch_definition.attr_name, pydreo_device.name)
 
             # Only create switch if device supports this feature
-            if pydreo_device.is_feature_supported(switch_definition.attr_name):
+            if pydreo_device.is_feature_supported(switch_definition.attr_name) and switch_definition.exists_fn(pydreo_device):
                 # Prevent duplicate switches (shouldn't happen, but defensive coding)
                 if switch_definition.key in switch_keys:
                     _LOGGER.error("get_entries: Duplicate switch key %s", switch_definition.key)

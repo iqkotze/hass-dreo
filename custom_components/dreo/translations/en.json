@@ -141,6 +141,9 @@
       "childlockon": {
         "name": "Child Lock"
       },
+      "heater_power": {
+        "name": "Power"
+      },
       "locatemeon": {
         "name": "Presence Sensor"
       },

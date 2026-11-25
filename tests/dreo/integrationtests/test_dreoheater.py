@@ -78,7 +78,7 @@ class TestDreoHeater(IntegrationTestBase):
 
             switches = switch.get_entries([pydreo_heater])
             # Display Light reads/writes ledkepton: the fixture has no lighton (#964).
-            self.verify_expected_entities(switches, ["Child Lock", "Display Light", "PTC", "Panel Sound", "Window Detection"])
+            self.verify_expected_entities(switches, ["Child Lock", "Display Light", "PTC", "Panel Sound", "Power", "Window Detection"])
             display_switch = self.get_entity_by_key(switches, "Display Light")
             assert display_switch.is_on is True
             with patch(PATCH_SEND_COMMAND) as mock_send_command:
@@ -251,6 +251,7 @@ class TestDreoHeater(IntegrationTestBase):
                     "Horizontally Oscillating",
                     "PTC",
                     "Panel Sound",
+                    "Power",
                     "Vertically Oscillating",
                     "Window Detection",
                 ],
@@ -362,7 +363,7 @@ class TestDreoHeater(IntegrationTestBase):
 
             # PTC is read-only on this model: no switch, a "heating" binary sensor instead.
             switches = switch.get_entries([pydreo_heater])
-            self.verify_expected_entities(switches, ["Child Lock", "Display Light", "Panel Sound", "360° Airflow", "Window Detection"])
+            self.verify_expected_entities(switches, ["Child Lock", "Display Light", "Panel Sound", "360° Airflow", "Power", "Window Detection"])
             airflow_360_switch = self.get_entity_by_key(switches, "360° Airflow")
             assert airflow_360_switch.is_on is False
             with patch(PATCH_SEND_COMMAND) as mock_send_command:
@@ -1074,7 +1075,7 @@ class TestDreoHeater(IntegrationTestBase):
                 mock_send_command.assert_any_call(pydreo_heater, {HORIZONTAL_ANGLE_ADJ_KEY: -20})
 
             switches = switch.get_entries([pydreo_heater])
-            self.verify_expected_entities(switches, ["Horizontally Oscillating", "Panel Sound", "Child Lock", "Window Detection"])
+            self.verify_expected_entities(switches, ["Horizontally Oscillating", "Panel Sound", "Child Lock", "Power", "Window Detection"])
             with patch(PATCH_SEND_COMMAND) as mock_send_command:
                 self.get_entity_by_key(switches, "Window Detection").turn_on()
                 mock_send_command.assert_any_call(pydreo_heater, {WINOPENON_KEY: True})

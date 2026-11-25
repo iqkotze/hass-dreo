@@ -141,6 +141,9 @@
       "childlockon": {
         "name": "Blokada rodzicielska"
       },
+      "heater_power": {
+        "name": "Zasilanie"
+      },
       "locatemeon": {
         "name": "Czujnik obecności"
       },

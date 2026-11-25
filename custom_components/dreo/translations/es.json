@@ -141,6 +141,9 @@
       "childlockon": {
         "name": "Bloqueo infantil"
       },
+      "heater_power": {
+        "name": "Encendido"
+      },
       "locatemeon": {
         "name": "Sensor de presencia"
       },

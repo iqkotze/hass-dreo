@@ -135,6 +135,9 @@
       "childlockon": {
         "name": "Dětský zámek"
       },
+      "heater_power": {
+        "name": "Napájení"
+      },
       "locatemeon": {
         "name": "Snímač přítomnosti"
       },

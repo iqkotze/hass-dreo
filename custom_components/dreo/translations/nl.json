@@ -141,6 +141,9 @@
       "childlockon": {
         "name": "Kinderslot"
       },
+      "heater_power": {
+        "name": "Aan/uit"
+      },
       "locatemeon": {
         "name": "Aanwezigheidssensor"
       },
