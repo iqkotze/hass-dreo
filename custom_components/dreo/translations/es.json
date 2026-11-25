@@ -84,6 +84,9 @@
           "off": "OK",
           "on": "Fallo"
         }
+      },
+      "window_open": {
+        "name": "Ventana abierta"
       }
     },
     "fan": {
@@ -268,6 +271,12 @@
           "tip_over": "Volcado (P4)",
           "other": "Otro fallo"
         }
+      },
+      "wifi_signal": {
+        "name": "Señal Wi-Fi"
+      },
+      "module_firmware": {
+        "name": "Firmware del módulo Wi-Fi"
       }
     },
     "number": {

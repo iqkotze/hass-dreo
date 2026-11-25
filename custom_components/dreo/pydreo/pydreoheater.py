@@ -20,6 +20,7 @@ from .constant import (
     LEDKEPTON_KEY,
     AIRFLOWMODE_KEY,
     WINOPENON_KEY,
+    WINOPENED_KEY,
     RGBON_KEY,
     RGB_BRI,
     CTLSTATUS_KEY,
@@ -97,6 +98,7 @@ _SERVER_UPDATE_FIELDS = (
     (RGBON_KEY, "_rgbon", _is_bool),
     (RGB_BRI, "_rgbbri", _is_int),
     (WINOPENON_KEY, "_winopenon", _is_bool),
+    (WINOPENED_KEY, "_winopened", _is_int),
     (FIXEDCONF_KEY, "_fixed_conf", _is_str),
 )
 
@@ -132,6 +134,7 @@ class PyDreoHeater(PyDreoBaseDevice):
         self._tempoffset = None
         self._airflowmode = None
         self._winopenon = None
+        self._winopened = None
         self._rgbon = None
         self._rgbbri = None
 
@@ -482,6 +485,11 @@ class PyDreoHeater(PyDreoBaseDevice):
             self._send_command(RGB_BRI, level)
         if self._rgbon != (level > 0):
             self._send_command(RGBON_KEY, level > 0)
+
+    @property
+    def window_open(self) -> bool | None:
+        """Returns `True` if the heater reports an open window, None if not reported."""
+        return None if self._winopened is None else bool(self._winopened)
 
     @property
     def window_detection(self) -> bool | None:
@@ -922,6 +930,7 @@ class PyDreoHeater(PyDreoBaseDevice):
         self._tempoffset = self.get_state_update_value(state, TEMPOFFSET_KEY)
         self._airflowmode = self.get_state_update_value(state, AIRFLOWMODE_KEY)
         self._winopenon = self.get_state_update_value(state, WINOPENON_KEY)
+        self._winopened = self.get_state_update_value(state, WINOPENED_KEY)
         self._rgbon = self.get_state_update_value(state, RGBON_KEY)
         self._rgbbri = self.get_state_update_value(state, RGB_BRI)
         self._fixed_conf = self.get_state_update_value(state, FIXEDCONF_KEY)

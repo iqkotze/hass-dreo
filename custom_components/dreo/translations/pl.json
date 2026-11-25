@@ -84,6 +84,9 @@
           "off": "OK",
           "on": "Usterka"
         }
+      },
+      "window_open": {
+        "name": "Okno otwarte"
       }
     },
     "fan": {
@@ -268,6 +271,12 @@
           "tip_over": "Przewrócenie (P4)",
           "other": "Inna usterka"
         }
+      },
+      "wifi_signal": {
+        "name": "Sygnał Wi-Fi"
+      },
+      "module_firmware": {
+        "name": "Oprogramowanie modułu Wi-Fi"
       }
     },
     "number": {

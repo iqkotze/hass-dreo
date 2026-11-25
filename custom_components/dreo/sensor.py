@@ -222,6 +222,25 @@ SENSORS: tuple[DreoSensorEntityDescription, ...] = (
         exists_fn=lambda device: (device.type == DreoDeviceType.HEATER) and device.is_feature_supported("fault_code"),
         attrs_fn=lambda device: {"fault_code": device.fault_code},
     ),
+    DreoSensorEntityDescription(
+        key="wifi_signal",
+        translation_key="wifi_signal",
+        device_class=SensorDeviceClass.SIGNAL_STRENGTH,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+        value_fn=lambda device: device.wifi_rssi,
+        exists_fn=lambda device: device.is_feature_supported("wifi_rssi"),
+    ),
+    DreoSensorEntityDescription(
+        key="module_firmware",
+        translation_key="module_firmware",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+        value_fn=lambda device: device.module_firmware_version,
+        exists_fn=lambda device: device.is_feature_supported("module_firmware_version"),
+    ),
 )
 
 

@@ -437,7 +437,7 @@ class TestDreoTowerFan(IntegrationTestBase):
             switches = switch.get_entries([pydreo_fan])
             self.verify_expected_entities(switches, ["Display Auto Off", "Panel Sound"])
             sensors = sensor.get_entries([pydreo_fan])
-            self.verify_expected_entities(sensors, ["Temperature"])
+            self.verify_expected_entities(sensors, ["Temperature", "module_firmware", "wifi_signal"])
 
     def test_HTF007S_old_rev(self):  # pylint: disable=invalid-name
         """Test HTF007S old hardware revision (CMS89F7518/EUR MCU).
@@ -507,7 +507,7 @@ class TestDreoTowerFan(IntegrationTestBase):
             switches = switch.get_entries([pydreo_fan])
             self.verify_expected_entities(switches, ["Display Auto Off", "Panel Sound"])
             sensors = sensor.get_entries([pydreo_fan])
-            self.verify_expected_entities(sensors, ["Temperature"])
+            self.verify_expected_entities(sensors, ["Temperature", "module_firmware", "wifi_signal"])
 
     def test_HTF009S(self):  # pylint: disable=invalid-name
         """Load HTF009S tower fan and test HA entity."""
@@ -545,7 +545,7 @@ class TestDreoTowerFan(IntegrationTestBase):
             switches = switch.get_entries([pydreo_fan])
             self.verify_expected_entities(switches, ["Display Auto Off", "Panel Sound"])
             sensors = sensor.get_entries([pydreo_fan])
-            self.verify_expected_entities(sensors, ["Temperature"])
+            self.verify_expected_entities(sensors, ["Temperature", "module_firmware", "wifi_signal"])
 
     def test_HTF010S(self):  # pylint: disable=invalid-name
         """Load HTF010S tower fan and test HA entity.
@@ -589,4 +589,4 @@ class TestDreoTowerFan(IntegrationTestBase):
             switches = switch.get_entries([pydreo_fan])
             self.verify_expected_entities(switches, ["Child Lock", "Panel Sound"])
             sensors = sensor.get_entries([pydreo_fan])
-            self.verify_expected_entities(sensors, ["Temperature", "pm25"])
+            self.verify_expected_entities(sensors, ["Temperature", "module_firmware", "pm25", "wifi_signal"])

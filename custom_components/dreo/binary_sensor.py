@@ -134,6 +134,13 @@ BINARY_SENSORS: tuple[DreoBinarySensorEntityDescription, ...] = (
         exists_fn=lambda device: device.is_feature_supported("heating"),
         icon_fn=lambda device: "mdi:radiator" if device.heating else "mdi:radiator-off",
     ),
+    DreoBinarySensorEntityDescription(
+        key="window_open",
+        translation_key="window_open",
+        device_class=BinarySensorDeviceClass.WINDOW,
+        value_fn=lambda device: device.window_open,
+        exists_fn=lambda device: device.type == DreoDeviceType.HEATER and device.is_feature_supported("window_open"),
+    ),
     # Diagnostic: models with fixedconf settle (e.g. DR-HPF017S) queue axis
     # updates while the head is moving; enable this entity to observe the queue.
     DreoBinarySensorEntityDescription(

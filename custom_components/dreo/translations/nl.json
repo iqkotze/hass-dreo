@@ -84,6 +84,9 @@
           "off": "OK",
           "on": "Storing"
         }
+      },
+      "window_open": {
+        "name": "Raam open"
       }
     },
     "fan": {
@@ -268,6 +271,12 @@
           "tip_over": "Omgevallen (P4)",
           "other": "Andere storing"
         }
+      },
+      "wifi_signal": {
+        "name": "Wifi-signaal"
+      },
+      "module_firmware": {
+        "name": "Wifi-modulefirmware"
       }
     },
     "number": {

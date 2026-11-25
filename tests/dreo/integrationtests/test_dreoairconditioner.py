@@ -34,7 +34,7 @@ class TestDreoAirConditioner(IntegrationTestBase):
             self.verify_expected_entities(numbers, ["Target Humidity", "Timer On", "Timer Off"])
 
             sensors = sensor.get_entries([pydreo_ac])
-            self.verify_expected_entities(sensors, ["Humidity", "Target temp reached", "Use since cleaning"])
+            self.verify_expected_entities(sensors, ["Humidity", "Target temp reached", "Use since cleaning", "module_firmware", "wifi_signal"])
 
             # Test fan_modes returns strings (regression test for DreoACFanMode enum bug)
             ac_ha = dreoairconditioner.DreoAirConditionerHA(pydreo_ac)
@@ -60,7 +60,7 @@ class TestDreoAirConditioner(IntegrationTestBase):
             self.verify_expected_entities(numbers, ["Target Humidity", "Timer On", "Timer Off"])
 
             sensors = sensor.get_entries([pydreo_ac])
-            self.verify_expected_entities(sensors, ["Humidity", "Use since cleaning", "Target temp reached"])
+            self.verify_expected_entities(sensors, ["Humidity", "Target temp reached", "Use since cleaning", "module_firmware", "wifi_signal"])
 
             # Test climate entity - fan_modes must be strings (regression for DreoACFanMode enum bug)
             ac_ha = dreoairconditioner.DreoAirConditionerHA(pydreo_ac)

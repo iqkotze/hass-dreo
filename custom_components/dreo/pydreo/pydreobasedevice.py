@@ -19,6 +19,8 @@ from .constant import (
     TIMER_MAX_MINUTES,
     MCU_FIRMWARE_VERSION_KEY,
     MCU_HARDWARE_MODEL_KEY,
+    MODULE_FIRMWARE_VERSION_KEY,
+    WIFI_RSSI_KEY,
 )
 from .models import DreoDeviceDetails
 
@@ -93,6 +95,8 @@ class PyDreoBaseDevice:
         self._timer_off = None
         self._mcu_firmware_version = None
         self._mcu_hardware_model = None
+        self._wifi_rssi = None
+        self._module_firmware_version = None
 
         self._feature_key_names: Dict[str, str] = {}
 
@@ -171,6 +175,10 @@ class PyDreoBaseDevice:
         if isinstance(val_connected, bool):
             _LOGGER.debug("handle_server_update_base: connected: %s --> %s", self._connected, val_connected)
             self._connected = val_connected
+
+        val_rssi = self.get_server_update_key_value(message, WIFI_RSSI_KEY)
+        if _is_int_not_bool(val_rssi):
+            self._wifi_rssi = val_rssi
 
         if self._timer_on is not None:
             val_timer_on = self._timer_duration(self.get_server_update_key_value(message, TIMERON_KEY))
@@ -295,6 +303,9 @@ class PyDreoBaseDevice:
         self._timer_off = self._timer_duration(self.get_state_update_value(state, TIMEROFF_KEY))
         self._mcu_firmware_version = self.get_state_update_value(state, MCU_FIRMWARE_VERSION_KEY)
         self._mcu_hardware_model = self.get_state_update_value(state, MCU_HARDWARE_MODEL_KEY)
+        rssi = self.get_state_update_value(state, WIFI_RSSI_KEY)
+        self._wifi_rssi = rssi if _is_int_not_bool(rssi) else None
+        self._module_firmware_version = self.get_state_update_value(state, MODULE_FIRMWARE_VERSION_KEY)
 
     @staticmethod
     def _timer_duration(value) -> int | None:
@@ -461,3 +472,13 @@ class PyDreoBaseDevice:
                 return True
 
         return False
+
+    @property
+    def wifi_rssi(self) -> int | None:
+        """Get the Wi-Fi signal strength in dBm, or None if the device does not report it."""
+        return self._wifi_rssi
+
+    @property
+    def module_firmware_version(self) -> str | None:
+        """Get the Wi-Fi module firmware version, or None if the device does not report it."""
+        return self._module_firmware_version

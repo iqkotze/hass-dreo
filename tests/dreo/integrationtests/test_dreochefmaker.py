@@ -48,7 +48,7 @@ class TestDreoChefMaker(IntegrationTestBase):
 
             # Check to see what sensors are added to chef makers
             sensors = sensor.get_entries([pydreo_chef_maker])
-            self.verify_expected_entities(sensors, ["Cook end time", "Status"])
+            self.verify_expected_entities(sensors, ["Cook end time", "Status", "module_firmware", "wifi_signal"])
 
             # The "Cook end time" sensor is a TIMESTAMP sensor that is present regardless of
             # cook state; it reports None (unknown) while the device is idle.

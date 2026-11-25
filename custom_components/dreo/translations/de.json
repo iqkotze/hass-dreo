@@ -84,6 +84,9 @@
           "off": "OK",
           "on": "Störung"
         }
+      },
+      "window_open": {
+        "name": "Fenster offen"
       }
     },
     "fan": {
@@ -268,6 +271,12 @@
           "tip_over": "Umgekippt (P4)",
           "other": "Andere Störung"
         }
+      },
+      "wifi_signal": {
+        "name": "WLAN-Signal"
+      },
+      "module_firmware": {
+        "name": "WLAN-Modul-Firmware"
       }
     },
     "number": {

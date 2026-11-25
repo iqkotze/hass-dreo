@@ -57,7 +57,7 @@ class TestDreoAirPurifier(IntegrationTestBase):
             switches = switch.get_entries([pydreo_ap])
             self.verify_expected_entities(switches, ["Child Lock", "Display Auto Off", "Panel Sound"])
             sensors = sensor.get_entries([pydreo_ap])
-            self.verify_expected_entities(sensors, [])
+            self.verify_expected_entities(sensors, ["module_firmware", "wifi_signal"])
 
     def test_HAP003S(self):  # pylint: disable=invalid-name
         """Load HAP003S air purifier (Macro Max S) — original revision ("meidi" MCU)."""
@@ -112,7 +112,7 @@ class TestDreoAirPurifier(IntegrationTestBase):
             switches = switch.get_entries([pydreo_ap])
             self.verify_expected_entities(switches, ["Child Lock", "Display Auto Off", "Panel Sound"])
             sensors = sensor.get_entries([pydreo_ap])
-            self.verify_expected_entities(sensors, [])
+            self.verify_expected_entities(sensors, ["module_firmware", "wifi_signal"])
 
     def test_HAP003S_2(self):  # pylint: disable=invalid-name
         """Load HAP003S air purifier (Macro Max S/AS) — newer "midea" MCU revision."""
@@ -168,7 +168,7 @@ class TestDreoAirPurifier(IntegrationTestBase):
             switches = switch.get_entries([pydreo_ap])
             self.verify_expected_entities(switches, ["Child Lock", "Panel Sound"])
             sensors = sensor.get_entries([pydreo_ap])
-            self.verify_expected_entities(sensors, ["pm25"])
+            self.verify_expected_entities(sensors, ["module_firmware", "pm25", "wifi_signal"])
 
     def test_HAP003S_3(self):  # pylint: disable=invalid-name
         """Load HAP003S air purifier (Macro Max S/AS) — newer "001" MCU revision."""
@@ -223,7 +223,7 @@ class TestDreoAirPurifier(IntegrationTestBase):
             switches = switch.get_entries([pydreo_ap])
             self.verify_expected_entities(switches, ["Child Lock", "Panel Sound"])
             sensors = sensor.get_entries([pydreo_ap])
-            self.verify_expected_entities(sensors, ["pm25"])
+            self.verify_expected_entities(sensors, ["module_firmware", "pm25", "wifi_signal"])
 
     def test_HAP003S_4(self):  # pylint: disable=invalid-name
         """Load HAP003S air purifier (Macro Max S/AS) with the "SC95F8616B-2/US" MCU (issue #957)."""
@@ -287,7 +287,7 @@ class TestDreoAirPurifier(IntegrationTestBase):
             switches = switch.get_entries([pydreo_ap])
             self.verify_expected_entities(switches, ["Child Lock", "Display Auto Off", "Panel Sound"])
             sensors = sensor.get_entries([pydreo_ap])
-            self.verify_expected_entities(sensors, ["pm25"])
+            self.verify_expected_entities(sensors, ["module_firmware", "pm25", "wifi_signal"])
 
     def test_HAP007S(self):  # pylint: disable=invalid-name
         """Load HAP007S (337S/337AS) air purifier with empty controlsConf and test HA entities."""
@@ -321,7 +321,7 @@ class TestDreoAirPurifier(IntegrationTestBase):
 
             # Filter life (percent, matches the Dreo app) and PM2.5 sensors
             sensors = sensor.get_entries([pydreo_ap])
-            self.verify_expected_entities(sensors, ["Air Purifier Filter Life", "pm25"])
+            self.verify_expected_entities(sensors, ["Air Purifier Filter Life", "module_firmware", "pm25", "wifi_signal"])
             filter_life = self.get_entity_by_key(sensors, "Air Purifier Filter Life")
             assert filter_life.native_value == 89
 
@@ -418,3 +418,15 @@ class TestDreoAirPurifier(IntegrationTestBase):
             with patch(PATCH_SEND_COMMAND) as mock_send_command:
                 ha_fan.set_percentage(100)
                 mock_send_command.assert_called_once_with(pydreo_ap, {WINDLEVEL_KEY: 4})
+
+    def test_wifi_sensors_absent_when_not_reported(self):
+        """K2/K4: a device whose state lacks wifi_rssi / module_firmware_version gets no Wi-Fi sensors."""
+        with patch(PATCH_SCHEDULE_UPDATE_HA_STATE):
+            self.get_devices_file_name = "get_devices_HAP008S.json"
+            self.pydreo_manager.load_devices()
+            device = self.pydreo_manager.devices[0]
+            assert device.wifi_rssi is None
+            assert device.module_firmware_version is None
+            keys = [e.entity_description.key for e in sensor.get_entries([device])]
+            assert "wifi_signal" not in keys
+            assert "module_firmware" not in keys

@@ -84,6 +84,9 @@
           "off": "OK",
           "on": "Défaut"
         }
+      },
+      "window_open": {
+        "name": "Fenêtre ouverte"
       }
     },
     "fan": {
@@ -268,6 +271,12 @@
           "tip_over": "Basculement (P4)",
           "other": "Autre défaut"
         }
+      },
+      "wifi_signal": {
+        "name": "Signal Wi-Fi"
+      },
+      "module_firmware": {
+        "name": "Firmware du module Wi-Fi"
       }
     },
     "number": {

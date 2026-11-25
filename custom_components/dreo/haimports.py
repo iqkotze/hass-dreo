@@ -93,6 +93,7 @@ from homeassistant.const import (
     PRECISION_WHOLE,
     STATE_OFF,
     STATE_ON,
+    SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
     UnitOfTemperature,
     UnitOfTime,
 )

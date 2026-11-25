@@ -67,7 +67,7 @@ class TestDreoDeHumidifier(IntegrationTestBase):
 
             # Check sensors
             sensors = sensor.get_entries([pydreo_dehumidifier])
-            self.verify_expected_entities(sensors, ["Humidity", "Temperature", "Water Level"])
+            self.verify_expected_entities(sensors, ["Humidity", "Temperature", "Water Level", "module_firmware", "wifi_signal"])
 
             # Check water empty binary sensor (derived from error code)
             binary_sensors = binary_sensor.get_entries([pydreo_dehumidifier])
@@ -120,7 +120,7 @@ class TestDreoDeHumidifier(IntegrationTestBase):
 
             # Check sensors
             sensors = sensor.get_entries([pydreo_dehumidifier])
-            self.verify_expected_entities(sensors, ["Humidity", "Temperature", "Water Level"])
+            self.verify_expected_entities(sensors, ["Humidity", "Temperature", "Water Level", "module_firmware", "wifi_signal"])
 
             # Check water empty binary sensor (derived from error code)
             binary_sensors = binary_sensor.get_entries([pydreo_dehumidifier])
@@ -152,7 +152,7 @@ class TestDreoDeHumidifier(IntegrationTestBase):
             assert self.get_entity_by_key(numbers, "Target Humidity").native_value == 45
 
             sensors = sensor.get_entries([pydreo_dehumidifier])
-            self.verify_expected_entities(sensors, ["Humidity", "Temperature", "Water Level"])
+            self.verify_expected_entities(sensors, ["Humidity", "Temperature", "Water Level", "module_firmware", "wifi_signal"])
 
             binary_sensors = binary_sensor.get_entries([pydreo_dehumidifier])
             self.verify_expected_entities(binary_sensors, ["water_empty"])

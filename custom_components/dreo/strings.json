@@ -84,6 +84,9 @@
           "off": "OK",
           "on": "Fault"
         }
+      },
+      "window_open": {
+        "name": "Window Open"
       }
     },
     "fan": {
@@ -286,6 +289,12 @@
           "tip_over": "Tip-over (P4)",
           "other": "Other fault"
         }
+      },
+      "wifi_signal": {
+        "name": "Wi-Fi Signal"
+      },
+      "module_firmware": {
+        "name": "Wi-Fi Module Firmware"
       }
     },
     "number": {
