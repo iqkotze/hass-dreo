@@ -217,38 +217,7 @@ class PyDreoAC(PyDreoBaseDevice):
         """Set the target temperature with empirical mapping for Celsius conversions."""
         # Handle SLEEP mode with sleeptempoffset
         if self._mode == DreoACMode.SLEEP and self._sleep_preset_initialization_temp is not None:
-            if self.temperature_units == TemperatureUnit.CELSIUS:
-                celsius_equivalent = round((value - 32) * 5 / 9)
-                mapped_fahrenheit = CELSIUS_TO_FAHRENHEIT_MAP.get(celsius_equivalent, value)
-                sleeptempoffset = mapped_fahrenheit - self._sleep_preset_initialization_temp
-                if self._target_temperature == mapped_fahrenheit:
-                    _LOGGER.debug("target_temperature: target_temperature - value already %s, skipping command", mapped_fahrenheit)
-                    return
-                _LOGGER.debug(
-                    "target_temperature: target_temperature.setter(%s) SLEEP Celsius mode: %s°F (%s°C) --> offset %s (init temp: %s)",
-                    self,
-                    value,
-                    celsius_equivalent,
-                    sleeptempoffset,
-                    self._sleep_preset_initialization_temp,
-                )
-                self._target_temperature = mapped_fahrenheit
-                self._send_command(SLEEPTEMPOFFSET_KEY, sleeptempoffset)
-            else:
-                # HA uses Fahrenheit - calculate offset directly
-                sleeptempoffset = value - self._sleep_preset_initialization_temp
-                if self._target_temperature == value:
-                    _LOGGER.debug("target_temperature: target_temperature - value already %s, skipping command", value)
-                    return
-                _LOGGER.debug(
-                    "target_temperature: target_temperature.setter(%s) SLEEP Fahrenheit mode: %s°F --> offset %s (init temp: %s)",
-                    self,
-                    value,
-                    sleeptempoffset,
-                    self._sleep_preset_initialization_temp,
-                )
-                self._target_temperature = value
-                self._send_command(SLEEPTEMPOFFSET_KEY, sleeptempoffset)
+            self._set_sleep_target_temperature(value)
         else:
             # Normal mode (non-SLEEP) - use regular templevel
             if self.temperature_units == TemperatureUnit.CELSIUS:
@@ -274,6 +243,41 @@ class PyDreoAC(PyDreoBaseDevice):
                 _LOGGER.debug("target_temperature: target_temperature.setter(%s) Fahrenheit mode: %s°F", self, value)
                 self._target_temperature = value
                 self._send_command(TARGET_TEMPERATURE_KEY, value)
+
+    def _set_sleep_target_temperature(self, value: int) -> None:
+        """Set the target temperature in SLEEP mode via sleeptempoffset."""
+        if self.temperature_units == TemperatureUnit.CELSIUS:
+            celsius_equivalent = round((value - 32) * 5 / 9)
+            mapped_fahrenheit = CELSIUS_TO_FAHRENHEIT_MAP.get(celsius_equivalent, value)
+            sleeptempoffset = mapped_fahrenheit - self._sleep_preset_initialization_temp
+            if self._target_temperature == mapped_fahrenheit:
+                _LOGGER.debug("target_temperature: target_temperature - value already %s, skipping command", mapped_fahrenheit)
+                return
+            _LOGGER.debug(
+                "target_temperature: target_temperature.setter(%s) SLEEP Celsius mode: %s°F (%s°C) --> offset %s (init temp: %s)",
+                self,
+                value,
+                celsius_equivalent,
+                sleeptempoffset,
+                self._sleep_preset_initialization_temp,
+            )
+            self._target_temperature = mapped_fahrenheit
+            self._send_command(SLEEPTEMPOFFSET_KEY, sleeptempoffset)
+        else:
+            # HA uses Fahrenheit - calculate offset directly
+            sleeptempoffset = value - self._sleep_preset_initialization_temp
+            if self._target_temperature == value:
+                _LOGGER.debug("target_temperature: target_temperature - value already %s, skipping command", value)
+                return
+            _LOGGER.debug(
+                "target_temperature: target_temperature.setter(%s) SLEEP Fahrenheit mode: %s°F --> offset %s (init temp: %s)",
+                self,
+                value,
+                sleeptempoffset,
+                self._sleep_preset_initialization_temp,
+            )
+            self._target_temperature = value
+            self._send_command(SLEEPTEMPOFFSET_KEY, sleeptempoffset)
 
     @property
     def humidity(self):

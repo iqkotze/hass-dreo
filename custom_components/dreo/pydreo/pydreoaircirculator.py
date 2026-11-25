@@ -36,6 +36,7 @@ from .constant import (
 
 from .commandoutbox import OutboxTiming
 from .helpers import Helpers
+from .pydreobasedevice import _is_bool, _is_int, _is_str
 from .pydreofanbase import PyDreoFanBase
 from .models import DreoDeviceDetails
 
@@ -45,6 +46,27 @@ _LOGGER = logging.getLogger(__name__)
 # control-report is the later device confirmation and carries encoder updates,
 # so it must remain authoritative along with method "report".
 _FIXEDCONF_OPTIMISTIC_METHODS = frozenset({"control-reply"})
+
+# Websocket keys copied unchanged to an attribute when the value passes the check (see handle_server_update).
+_SERVER_UPDATE_FIELDS = (
+    (HORIZONTAL_OSCILLATION_KEY, "_horizontally_oscillating", _is_bool),
+    (VERTICAL_OSCILLATION_KEY, "_vertically_oscillating", _is_bool),
+    (OSCMODE_KEY, "_osc_mode", _is_int),
+    (CRUISECONF_KEY, "_cruise_conf", _is_str),
+    (HORIZONTAL_OSCILLATION_ANGLE_KEY, "_horizontal_oscillation_angle", _is_int),
+    (VERTICAL_OSCILLATION_ANGLE_KEY, "_vertical_oscillation_angle", _is_int),
+    (HORIZONTAL_ANGLE_ADJ_KEY, "_horizontal_angle_adj", _is_int),
+    (HORIZONTAL_OSCILLATION_ADJ_KEY, "_horizontal_oscillation_adj", _is_int),
+    (VERTICAL_OSCILLATION_ADJ_KEY, "_vertical_oscillation_adj", _is_int),
+    (ATMON_KEY, "_atm_light_on", _is_bool),
+    (ATMBRI_KEY, "_atm_brightness", _is_int),
+    (ATMCOLOR_KEY, "_atm_color", _is_int),
+    (ATMMODE_KEY, "_atm_mode", _is_int),
+    (LIGHTON_KEY, "_display_light", _is_bool),
+    (HWFPON_KEY, "_follow_me", _is_bool),
+    (HWFPANGLE_KEY, "_follow_me_angle", _is_int),
+    (HBODYCNT_KEY, "_people_detected", _is_int),
+)
 
 # Default: no inter-command settle (most air circulators handle rapid fixedconf).
 # Models that need a longer interval set FIXEDCONF_SETTLE_SECONDS_KEY (float seconds)
@@ -138,9 +160,7 @@ class PyDreoAirCirculator(PyDreoFanBase):
         settle = None
         if device_definition.device_ranges is not None:
             settle = device_definition.device_ranges.get(FIXEDCONF_SETTLE_SECONDS_KEY)
-        self._fixed_conf_settle_seconds: float = (
-            float(settle) if settle is not None else _FIXEDCONF_SETTLE_SECONDS_DEFAULT
-        )
+        self._fixed_conf_settle_seconds: float = float(settle) if settle is not None else _FIXEDCONF_SETTLE_SECONDS_DEFAULT
 
         self._horizontally_oscillating = None
         self._vertically_oscillating = None
@@ -284,23 +304,8 @@ class PyDreoAirCirculator(PyDreoFanBase):
         preset_modes = []
         controls_conf = details.get("controlsConf", None)
         if controls_conf is not None:
-            control = controls_conf.get("control", None)
-            if control is not None:
-                for control_item in control:
-                    if control_item.get("type", None) == "Mode":
-                        for mode_item in control_item.get("items", None):
-                            text = self.get_mode_string(mode_item.get("text", None))
-                            value = mode_item.get("value", None)
-                            preset_modes.append((text, value))
-            schedule = controls_conf.get("schedule", None)
-            if schedule is not None:
-                modes = schedule.get("modes", None)
-                if modes is not None:
-                    for mode_item in modes:
-                        text = self.get_mode_string(mode_item.get("title", None))
-                        value = mode_item.get("value", None)
-                        if (text, value) not in preset_modes:
-                            preset_modes.append((text, value))
+            self._collect_control_modes(controls_conf, preset_modes)
+            self._collect_schedule_modes(controls_conf, preset_modes)
 
         preset_modes.sort(key=lambda tup: tup[1])  # sorts in place
         if len(preset_modes) == 0:
@@ -308,6 +313,27 @@ class PyDreoAirCirculator(PyDreoFanBase):
             preset_modes = None
         _LOGGER.debug("parse_preset_modes: Detected preset modes - %s", preset_modes)
         return preset_modes
+
+    def _collect_control_modes(self, controls_conf, preset_modes: list) -> None:
+        control = controls_conf.get("control", None)
+        if control is not None:
+            for control_item in control:
+                if control_item.get("type", None) == "Mode":
+                    for mode_item in control_item.get("items", None):
+                        text = self.get_mode_string(mode_item.get("text", None))
+                        value = mode_item.get("value", None)
+                        preset_modes.append((text, value))
+
+    def _collect_schedule_modes(self, controls_conf, preset_modes: list) -> None:
+        schedule = controls_conf.get("schedule", None)
+        if schedule is not None:
+            modes = schedule.get("modes", None)
+            if modes is not None:
+                for mode_item in modes:
+                    text = self.get_mode_string(mode_item.get("title", None))
+                    value = mode_item.get("value", None)
+                    if (text, value) not in preset_modes:
+                        preset_modes.append((text, value))
 
     @property
     def horizontal_angle_range(self):
@@ -675,11 +701,7 @@ class PyDreoAirCirculator(PyDreoFanBase):
     def fixed_conf_debug_state(self) -> dict:
         """Diagnostic snapshot: reported / commanded / pending / settle timing."""
         with self._fixed_conf_lock:
-            pending = (
-                self._pending_fixed_conf
-                if self._pending_fixed_conf is not None and self._fixed_conf_cancel is not None
-                else None
-            )
+            pending = self._pending_fixed_conf if self._pending_fixed_conf is not None and self._fixed_conf_cancel is not None else None
             remaining = self._remaining_fixed_conf_settle_seconds()
             return {
                 "reported": self._normalize_fixed_conf(self._fixed_conf),
@@ -713,9 +735,7 @@ class PyDreoAirCirculator(PyDreoFanBase):
         Returns True if commanded/at-command tracking was non-empty (UI should refresh).
         Caller must hold ``_fixed_conf_lock``.
         """
-        changed = (
-            self._last_commanded_fixed_conf is not None or self._fixed_conf_at_command is not None
-        )
+        changed = self._last_commanded_fixed_conf is not None or self._fixed_conf_at_command is not None
         self._last_commanded_fixed_conf = None
         self._fixed_conf_at_command = None
         return changed
@@ -727,11 +747,7 @@ class PyDreoAirCirculator(PyDreoFanBase):
         last device-reported position so rapid HA axis updates do not clobber
         each other while waiting for a device report.
         """
-        return (
-            self._pending_fixed_conf
-            or self._last_commanded_fixed_conf
-            or self._normalize_fixed_conf(self._fixed_conf)
-        )
+        return self._pending_fixed_conf or self._last_commanded_fixed_conf or self._normalize_fixed_conf(self._fixed_conf)
 
     def _maybe_log_fixed_conf_reject(self, reported: str | None, previous: str | None) -> bool:
         """Log a reject only when the device snaps back to the pre-command position.
@@ -790,9 +806,7 @@ class PyDreoAirCirculator(PyDreoFanBase):
             _LOGGER.debug("_set_fixed_conf: disposed; skipping send of %s", normalized)
             return None
         # If a previous command never confirmed, surface that before sending again.
-        self._maybe_log_fixed_conf_reject(
-            self._normalize_fixed_conf(self._fixed_conf), self._fixed_conf
-        )
+        self._maybe_log_fixed_conf_reject(self._normalize_fixed_conf(self._fixed_conf), self._fixed_conf)
 
         self._fixed_conf_at_command = self._normalize_fixed_conf(self._fixed_conf)
         self._last_commanded_fixed_conf = normalized
@@ -910,9 +924,7 @@ class PyDreoAirCirculator(PyDreoFanBase):
                         )
                         self._cancel_fixed_conf_timer_locked()
                         # Host scheduler (HA async_call_later) or Timer fallback.
-                        self._fixed_conf_cancel = self._dreo.schedule_call_later(
-                            remaining, self._on_fixed_conf_settle_timer
-                        )
+                        self._fixed_conf_cancel = self._dreo.schedule_call_later(remaining, self._on_fixed_conf_settle_timer)
                         notify = True
             if send is not None:
                 self._send_fixed_conf(send)
@@ -1160,10 +1172,7 @@ class PyDreoAirCirculator(PyDreoFanBase):
             # diagnostic number entity remains usable for self-tuning.
             return self._fixed_conf is not None and (
                 self._fixed_conf_settle_seconds > 0
-                or (
-                    self._device_definition.device_ranges is not None
-                    and FIXEDCONF_SETTLE_SECONDS_KEY in self._device_definition.device_ranges
-                )
+                or (self._device_definition.device_ranges is not None and FIXEDCONF_SETTLE_SECONDS_KEY in self._device_definition.device_ranges)
             )
         return super().is_feature_supported(feature)
 
@@ -1244,22 +1253,10 @@ class PyDreoAirCirculator(PyDreoFanBase):
         _LOGGER.debug("handle_server_update: handle_server_update")
         super().handle_server_update(message)
 
-        val_horiz_oscillation = self.get_server_update_key_value(message, HORIZONTAL_OSCILLATION_KEY)
-        if isinstance(val_horiz_oscillation, bool):
-            self._horizontally_oscillating = val_horiz_oscillation
+        self._apply_server_fields(message, _SERVER_UPDATE_FIELDS)
+        self._apply_server_fixed_conf(message)
 
-        val_vert_oscillation = self.get_server_update_key_value(message, VERTICAL_OSCILLATION_KEY)
-        if isinstance(val_vert_oscillation, bool):
-            self._vertically_oscillating = val_vert_oscillation
-
-        val_osc_mode = self.get_server_update_key_value(message, OSCMODE_KEY)
-        if isinstance(val_osc_mode, int):
-            self._osc_mode = val_osc_mode
-
-        val_cruiseconf = self.get_server_update_key_value(message, CRUISECONF_KEY)
-        if isinstance(val_cruiseconf, str):
-            self._cruise_conf = val_cruiseconf
-
+    def _apply_server_fixed_conf(self, message) -> None:
         val_fixed_conf = self.get_server_update_key_value(message, FIXEDCONF_KEY)
         if isinstance(val_fixed_conf, str):
             method = message.get("method")
@@ -1279,69 +1276,12 @@ class PyDreoAirCirculator(PyDreoFanBase):
                     previous = self._fixed_conf
                     self._fixed_conf = val_fixed_conf
                     self._add_angle_preset_option(self._fixed_conf)
-                    if self._maybe_log_fixed_conf_reject(
-                        self._normalize_fixed_conf(val_fixed_conf), previous
-                    ):
+                    if self._maybe_log_fixed_conf_reject(self._normalize_fixed_conf(val_fixed_conf), previous):
                         notify_settle = True
                     # If the device already reports the delayed target, drop the timer.
-                    if (
-                        self._pending_fixed_conf is not None
-                        and self._normalize_fixed_conf(val_fixed_conf) == self._pending_fixed_conf
-                    ):
+                    if self._pending_fixed_conf is not None and self._normalize_fixed_conf(val_fixed_conf) == self._pending_fixed_conf:
                         self._pending_fixed_conf = None
                         self._cancel_fixed_conf_timer_locked()
                         notify_settle = True
                 if notify_settle:
                     self._notify_fixed_conf_ui()
-
-        val_horiz_osc_angle = self.get_server_update_key_value(message, HORIZONTAL_OSCILLATION_ANGLE_KEY)
-        if isinstance(val_horiz_osc_angle, int):
-            self._horizontal_oscillation_angle = val_horiz_osc_angle
-
-        val_vert_osc_angle = self.get_server_update_key_value(message, VERTICAL_OSCILLATION_ANGLE_KEY)
-        if isinstance(val_vert_osc_angle, int):
-            self._vertical_oscillation_angle = val_vert_osc_angle
-
-        val_horiz_angle_adj = self.get_server_update_key_value(message, HORIZONTAL_ANGLE_ADJ_KEY)
-        if isinstance(val_horiz_angle_adj, int):
-            self._horizontal_angle_adj = val_horiz_angle_adj
-
-        val_horiz_osc_adj = self.get_server_update_key_value(message, HORIZONTAL_OSCILLATION_ADJ_KEY)
-        if isinstance(val_horiz_osc_adj, int):
-            self._horizontal_oscillation_adj = val_horiz_osc_adj
-
-        val_vert_osc_adj = self.get_server_update_key_value(message, VERTICAL_OSCILLATION_ADJ_KEY)
-        if isinstance(val_vert_osc_adj, int):
-            self._vertical_oscillation_adj = val_vert_osc_adj
-
-        val_atm_on = self.get_server_update_key_value(message, ATMON_KEY)
-        if isinstance(val_atm_on, bool):
-            self._atm_light_on = val_atm_on
-
-        val_atm_brightness = self.get_server_update_key_value(message, ATMBRI_KEY)
-        if isinstance(val_atm_brightness, int):
-            self._atm_brightness = val_atm_brightness
-
-        val_atm_color = self.get_server_update_key_value(message, ATMCOLOR_KEY)
-        if isinstance(val_atm_color, int):
-            self._atm_color = val_atm_color
-
-        val_atm_mode = self.get_server_update_key_value(message, ATMMODE_KEY)
-        if isinstance(val_atm_mode, int):
-            self._atm_mode = val_atm_mode
-
-        val_display_light = self.get_server_update_key_value(message, LIGHTON_KEY)
-        if isinstance(val_display_light, bool):
-            self._display_light = val_display_light
-
-        val_follow_me = self.get_server_update_key_value(message, HWFPON_KEY)
-        if isinstance(val_follow_me, bool):
-            self._follow_me = val_follow_me
-
-        val_follow_me_angle = self.get_server_update_key_value(message, HWFPANGLE_KEY)
-        if isinstance(val_follow_me_angle, int):
-            self._follow_me_angle = val_follow_me_angle
-
-        val_people_detected = self.get_server_update_key_value(message, HBODYCNT_KEY)
-        if isinstance(val_people_detected, int):
-            self._people_detected = val_people_detected

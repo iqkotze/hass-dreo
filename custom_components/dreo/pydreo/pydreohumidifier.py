@@ -30,7 +30,7 @@ from .constant import (
 from .helpers import Helpers
 
 
-from .pydreobasedevice import PyDreoBaseDevice
+from .pydreobasedevice import PyDreoBaseDevice, _is_bool, _is_int, _is_str
 from .models import DreoDeviceDetails
 
 _LOGGER = logging.getLogger(__name__)
@@ -54,6 +54,30 @@ LIGHT_OFF = "Disabled"
 WATER_LEVEL_STATUS_MAP = {0: WATER_LEVEL_OK, 1: WATER_LEVEL_EMPTY, 4: WATER_LEVEL_EMPTY, WATER_LEVEL_OK: 0, WATER_LEVEL_EMPTY: 1}
 
 LEDLEVEL_MAP = {0: LIGHT_OFF, 1: LIGHT_ON, 2: LIGHT_ON, LIGHT_OFF: 0, LIGHT_ON: 2}
+
+# Websocket keys copied unchanged to an attribute when the value passes the check (see handle_server_update).
+_SERVER_UPDATE_FIELDS = (
+    (MODE_KEY, "_mode", _is_int),
+    (WORKTIME_KEY, "_worktime", _is_int),
+    (WATER_LEVEL_PERCENT_KEY, "_water_level_percent", _is_int),
+    (FOGLEVEL_INTERNAL_KEY, "_foglevel", _is_int),
+    (RGB_LEVEL, "_rgblevel", _is_int),
+    (RGB_TH, "_rgbth", _is_str),
+    (RGB_MODE, "_rgbmode", _is_int),
+    (RGB_COLOR, "_rgbcolor", _is_int),
+    (LED_LEVEL_KEY, "_ledlevel", _is_int),
+    (SCHEDULE_ENABLE, "_scheon", _is_bool),
+    (MUTEON_KEY, "_mute_on", _is_bool),
+    (LEDKEPTON_KEY, "_ledkepton", _is_bool),
+    (FILTERTIME_KEY, "_filtertime", _is_int),
+    (FILTERON_KEY, "_filteron", _is_bool),
+    (SUSPEND_KEY, "_suspend", _is_bool),
+    # Newer firmware ambient light keys (atm* / ambient_switch).
+    (AMBIENT_SWITCH_KEY, "_atm_on", _is_bool),
+    (ATMMODE_KEY, "_atm_mode", _is_str),
+    (ATMCOLOR_KEY, "_atm_color", _is_int),
+    (ATMBRI_KEY, "_atm_brightness", _is_int),
+)
 
 # Status for mode indicator
 MODE_NORMAL = "normal"
@@ -105,9 +129,9 @@ class PyDreoHumidifier(PyDreoBaseDevice):
         self._filteron = None
         self._suspend = None
         # Newer firmware uses atm* keys instead of rgb* keys for the ambient light ring.
-        self._atm_on = None       # ambient_switch (bool): on/off
-        self._atm_mode = None     # atmmode (str): mode name e.g. "Breath", "Circle"
-        self._atm_color = None    # atmcolor (int): 24-bit packed RGB
+        self._atm_on = None  # ambient_switch (bool): on/off
+        self._atm_mode = None  # atmmode (str): mode name e.g. "Breath", "Circle"
+        self._atm_color = None  # atmcolor (int): 24-bit packed RGB
         self._atm_brightness = None  # atmbri (int): brightness level
 
     def parse_modes(self, details: Dict[str, list]) -> tuple[str, int]:
@@ -286,7 +310,7 @@ class PyDreoHumidifier(PyDreoBaseDevice):
     def worktime(self):
         """Return the working time (used since cleaning)"""
         return self._worktime
-        
+
     @property
     def filtertime(self):
         """Return the filter life remaining (%)."""
@@ -306,7 +330,7 @@ class PyDreoHumidifier(PyDreoBaseDevice):
     @property
     def suspend(self) -> bool | None:
         """Return True if humidifier is suspended (target humidity reached)."""
-        return self._suspend        
+        return self._suspend
 
     @property
     def display_light(self) -> bool | None:
@@ -619,117 +643,42 @@ class PyDreoHumidifier(PyDreoBaseDevice):
         """Process a websocket update"""
         _LOGGER.debug("handle_server_update: handle_server_update(%s): %s", self.name, message)
 
+        self._apply_server_fields(message, _SERVER_UPDATE_FIELDS)
+        self._apply_server_logged_fields(message)
+        self._apply_server_mapped_fields(message)
+
+    def _apply_server_logged_fields(self, message) -> None:
         val_poweron = self.get_server_update_key_value(message, POWERON_KEY)
-        if isinstance(val_poweron, bool):
+        if _is_bool(val_poweron):
             self._is_on = val_poweron
             _LOGGER.debug("handle_server_update: handle_server_update - poweron is %s", self._is_on)
 
-        val_mode = self.get_server_update_key_value(message, MODE_KEY)
-        if isinstance(val_mode, int):
-            self._mode = val_mode
-
-        val_worktime = self.get_server_update_key_value(message, WORKTIME_KEY)
-        if isinstance(val_worktime, int):
-            self._worktime = val_worktime
-
-        val_water_level = self.get_server_update_key_value(message, WATER_LEVEL_STATUS_KEY)
-        if isinstance(val_water_level, int):
-            val_water_level = WATER_LEVEL_STATUS_MAP.get(val_water_level, val_water_level)
-            self._wrong = val_water_level
-
-        val_water_level_percent = self.get_server_update_key_value(message, WATER_LEVEL_PERCENT_KEY)
-        if isinstance(val_water_level_percent, int):
-            self._water_level_percent = val_water_level_percent
-
-        val_foglevel = self.get_server_update_key_value(message, FOGLEVEL_INTERNAL_KEY)
-        if isinstance(val_foglevel, int):
-            self._foglevel = val_foglevel
-
-        val_rgblevel = self.get_server_update_key_value(message, RGB_LEVEL)
-        if isinstance(val_rgblevel, int):
-            self._rgblevel = val_rgblevel
-
-        val_rgbth = self.get_server_update_key_value(message, RGB_TH)
-        if isinstance(val_rgbth, str):
-            self._rgbth = val_rgbth
-
-        val_rgbmode = self.get_server_update_key_value(message, RGB_MODE)
-        if isinstance(val_rgbmode, int):
-            self._rgbmode = val_rgbmode
-
-        val_rgbcolor = self.get_server_update_key_value(message, RGB_COLOR)
-        if isinstance(val_rgbcolor, int):
-            self._rgbcolor = val_rgbcolor
-
-        val_ledlevel = self.get_server_update_key_value(message, LED_LEVEL_KEY)
-        if isinstance(val_ledlevel, int):
-            self._ledlevel = val_ledlevel
-
-        val_ledlevel = self.get_server_update_key_value(message, LED_LEVEL_KEY)
-        if isinstance(val_ledlevel, int):
-            self._ledlevel = val_ledlevel
-
-        val_scheon = self.get_server_update_key_value(message, SCHEDULE_ENABLE)
-        if isinstance(val_scheon, bool):
-            self._scheon = val_scheon
-
-        val_mute_on = self.get_server_update_key_value(message, MUTEON_KEY)
-        if isinstance(val_mute_on, bool):
-            self._mute_on = val_mute_on
-
         val_humidity = self.get_server_update_key_value(message, HUMIDITY_KEY)
-        if isinstance(val_humidity, int):
+        if _is_int(val_humidity):
             self._humidity = val_humidity
             _LOGGER.debug("handle_server_update: handle_server_update - humidity is %s", self._humidity)
 
         val_target_humidity = self.get_server_update_key_value(message, TARGET_AUTO_HUMIDITY_KEY)
-        if isinstance(val_target_humidity, int):
+        if _is_int(val_target_humidity):
             self._target_humidity = val_target_humidity
             _LOGGER.debug("handle_server_update: handle_server_update - target_humidity is %s", self._target_humidity)
 
         val_sleep_target_humidity = self.get_server_update_key_value(message, TARGET_SLEEP_HUMIDITY_KEY)
-        if isinstance(val_sleep_target_humidity, int):
+        if _is_int(val_sleep_target_humidity):
             self._sleep_target_humidity = val_sleep_target_humidity
             _LOGGER.debug("handle_server_update: handle_server_update - sleep_target_humidity is %s", self._sleep_target_humidity)
 
-        val_ledkepton = self.get_server_update_key_value(message, LEDKEPTON_KEY)
-        if isinstance(val_ledkepton, bool):
-            self._ledkepton = val_ledkepton
-
-        val_ledlevel = self.get_server_update_key_value(message, LEDLEVEL_KEY)
-        if isinstance(val_ledlevel, int):
-            self._ledlevel = LEDLEVEL_MAP.get(val_ledlevel, LIGHT_OFF)
-
         val_fog_level = self.get_server_update_key_value(message, FOG_LEVEL_KEY)
-        if isinstance(val_fog_level, int):
+        if _is_int(val_fog_level):
             self._fog_level = val_fog_level
             _LOGGER.debug("handle_server_update: handle_server_update - fog_level is %s", self._fog_level)
-            
-        val_filtertime = self.get_server_update_key_value(message, FILTERTIME_KEY)
-        if isinstance(val_filtertime, int):
-            self._filtertime = val_filtertime
 
-        val_filteron = self.get_server_update_key_value(message, FILTERON_KEY)
-        if isinstance(val_filteron, bool):
-            self._filteron = val_filteron
+    def _apply_server_mapped_fields(self, message) -> None:
+        val_water_level = self.get_server_update_key_value(message, WATER_LEVEL_STATUS_KEY)
+        if _is_int(val_water_level):
+            self._wrong = WATER_LEVEL_STATUS_MAP.get(val_water_level, val_water_level)
 
-        val_suspend = self.get_server_update_key_value(message, SUSPEND_KEY)
-        if isinstance(val_suspend, bool):
-            self._suspend = val_suspend
-
-        # Newer firmware ambient light keys (atm* / ambient_switch).
-        val_atm_on = self.get_server_update_key_value(message, AMBIENT_SWITCH_KEY)
-        if isinstance(val_atm_on, bool):
-            self._atm_on = val_atm_on
-
-        val_atm_mode = self.get_server_update_key_value(message, ATMMODE_KEY)
-        if isinstance(val_atm_mode, str):
-            self._atm_mode = val_atm_mode
-
-        val_atm_color = self.get_server_update_key_value(message, ATMCOLOR_KEY)
-        if isinstance(val_atm_color, int):
-            self._atm_color = val_atm_color
-
-        val_atm_brightness = self.get_server_update_key_value(message, ATMBRI_KEY)
-        if isinstance(val_atm_brightness, int):
-            self._atm_brightness = val_atm_brightness
+        # Must come after the plain LED_LEVEL_KEY field: both write _ledlevel, this one wins.
+        val_ledlevel = self.get_server_update_key_value(message, LEDLEVEL_KEY)
+        if _is_int(val_ledlevel):
+            self._ledlevel = LEDLEVEL_MAP.get(val_ledlevel, LIGHT_OFF)
