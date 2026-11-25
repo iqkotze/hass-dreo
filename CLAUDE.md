@@ -4,7 +4,7 @@ Unofficial Home Assistant integration for Dreo devices (`custom_components/dreo/
 Coding standards, structure and patterns: [.github/copilot-instructions.md](.github/copilot-instructions.md) (read only the section you need).
 
 ## Commands
-- Gate before every push: `.claude/check.sh` (ruff, ruff format on changed files, complexity ratchet, full pytest). Creates `.venv` on first run.
+- Gate before every push: `.claude/check.sh` (ruff, ruff format, complexity ratchet, full pytest; CI runs the same checks). Creates `.venv` on first run.
 - Single tests: `.venv/bin/python -m pytest -q tests/dreo/test_switch.py`
 - Complexity: `uvx complexipy` (limit 20 in `pyproject.toml`). Known debt is frozen in `complexipy-snapshot.json`: the gate fails only for new functions above 20 or known ones that got worse. After reducing debt, refresh it with `uvx complexipy --snapshot-create`.
 

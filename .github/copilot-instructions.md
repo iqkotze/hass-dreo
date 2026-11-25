@@ -123,7 +123,7 @@ The integration includes a special debug mode for testing without live devices:
 - **DO NOT enable in production code** (causes unit test failures)
 - Uses JSON files from `custom_components/dreo/e2e_test_data/`
 - To enable: Uncomment `DEBUG_TEST_MODE = True` in `custom_components/dreo/const.py`
-- See `contributing.md` for detailed usage instructions and configuration
+- See `CONTRIBUTING.md` for detailed usage instructions and configuration
 
 ## Common Tasks
 
@@ -192,7 +192,7 @@ The integration includes a special debug mode for testing without live devices:
 
 - [Home Assistant Developer Docs](https://developers.home-assistant.io/)
 - [PyDreo Library](custom_components/dreo/pydreo/) (embedded in this repo)
-- [Contributing Guide](contributing.md)
+- [Contributing Guide](../CONTRIBUTING.md)
 - [GitHub Issues](https://github.com/JeffSteinbok/hass-dreo/issues)
 
 ## Best Practices for Copilot

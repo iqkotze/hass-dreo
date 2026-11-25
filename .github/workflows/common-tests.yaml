@@ -20,12 +20,18 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pytest ruff
+        pip install pytest ruff complexipy
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         if [ -f requirements.test.txt ]; then pip install -r requirements.test.txt; fi
     - name: Lint with Ruff
       run: |
         ruff check .
+    - name: Check formatting with Ruff
+      run: |
+        ruff format --check .
+    - name: Check cognitive complexity (ratchet, see complexipy-snapshot.json)
+      run: |
+        complexipy
     - name: Run tests with pytest
       run: |
         pytest
