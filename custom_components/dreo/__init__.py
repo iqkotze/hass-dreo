@@ -38,14 +38,32 @@ def _install_ha_call_later_scheduler(
       returned cancel handles; ``config_entry.async_on_unload`` cancels any
       remaining handles and clears the host scheduler on integration unload.
     """
-    from homeassistant.core import callback as ha_callback  # pylint: disable=C0415
-    from homeassistant.helpers.event import async_call_later  # pylint: disable=C0415
-
     # List (not set): async_call_later unsub callables are hashable, but a list
     # avoids any set/hash edge cases and keeps cancellation order stable. All
     # mutations run under active_lock (may be touched from executor + loop).
     active_cancel_handles: list[Callable[[], None]] = []
     active_lock = threading.Lock()
+
+    pydreo_manager.set_schedule_call_later(_build_schedule_call_later(hass, active_cancel_handles, active_lock))
+    config_entry.async_on_unload(_build_cancel_all_pending(pydreo_manager, active_cancel_handles, active_lock))
+
+
+def _discard_handle(active_cancel_handles: list[Callable[[], None]], cancel_handle: Callable[[], None]) -> None:
+    """Remove a cancel handle from the active list if it is still there."""
+    try:
+        active_cancel_handles.remove(cancel_handle)
+    except ValueError:
+        pass
+
+
+def _build_schedule_call_later(
+    hass: HomeAssistant,
+    active_cancel_handles: list[Callable[[], None]],
+    active_lock: threading.Lock,
+) -> Callable[[float, Callable[[], None]], Callable[[], None]]:
+    """Build the ``schedule_call_later(delay, work)`` function handed to PyDreo."""
+    from homeassistant.core import callback as ha_callback  # pylint: disable=C0415
+    from homeassistant.helpers.event import async_call_later  # pylint: disable=C0415
 
     def schedule_call_later(delay: float, work: Callable[[], None]) -> Callable[[], None]:
         """Schedule ``work`` after delay; return a thread-safe cancel function.
@@ -62,10 +80,7 @@ def _install_ha_call_later_scheduler(
             with active_lock:
                 cancel_handle = cancel_handle_box[0]
                 if cancel_handle is not None:
-                    try:
-                        active_cancel_handles.remove(cancel_handle)
-                    except ValueError:
-                        pass
+                    _discard_handle(active_cancel_handles, cancel_handle)
                     cancel_handle_box[0] = None
             if cancelled.is_set():
                 return
@@ -83,35 +98,51 @@ def _install_ha_call_later_scheduler(
 
         hass.loop.call_soon_threadsafe(_schedule_on_loop)
 
-        def cancel() -> None:
-            cancelled.set()
+        return _build_cancel(hass, cancelled, cancel_handle_box, active_cancel_handles, active_lock)
 
-            def _cancel_on_loop() -> None:
-                cancel_handle = cancel_handle_box[0]
-                if cancel_handle is None:
-                    return
-                try:
-                    cancel_handle()
-                except Exception as ex:  # pylint: disable=broad-except
-                    # Teardown race: handle may already be invalid.
-                    _LOGGER.debug("schedule_call_later.cancel: handle failed: %s", ex)
-                finally:
-                    with active_lock:
-                        try:
-                            active_cancel_handles.remove(cancel_handle)
-                        except ValueError:
-                            pass
-                    cancel_handle_box[0] = None
+    return schedule_call_later
 
-            try:
-                hass.loop.call_soon_threadsafe(_cancel_on_loop)
-            except RuntimeError:
-                # Event loop already closed during shutdown.
-                pass
 
-        return cancel
+def _build_cancel(
+    hass: HomeAssistant,
+    cancelled: threading.Event,
+    cancel_handle_box: list[Callable[[], None] | None],
+    active_cancel_handles: list[Callable[[], None]],
+    active_lock: threading.Lock,
+) -> Callable[[], None]:
+    """Build the thread-safe cancel function for one scheduled call."""
 
-    pydreo_manager.set_schedule_call_later(schedule_call_later)
+    def _cancel_on_loop() -> None:
+        cancel_handle = cancel_handle_box[0]
+        if cancel_handle is None:
+            return
+        try:
+            cancel_handle()
+        except Exception as ex:  # pylint: disable=broad-except
+            # Teardown race: handle may already be invalid.
+            _LOGGER.debug("schedule_call_later.cancel: handle failed: %s", ex)
+        finally:
+            with active_lock:
+                _discard_handle(active_cancel_handles, cancel_handle)
+            cancel_handle_box[0] = None
+
+    def cancel() -> None:
+        cancelled.set()
+        try:
+            hass.loop.call_soon_threadsafe(_cancel_on_loop)
+        except RuntimeError:
+            # Event loop already closed during shutdown.
+            pass
+
+    return cancel
+
+
+def _build_cancel_all_pending(
+    pydreo_manager: "PyDreo",
+    active_cancel_handles: list[Callable[[], None]],
+    active_lock: threading.Lock,
+) -> Callable[[], None]:
+    """Build the unload callback that cancels all outstanding timers."""
 
     def _cancel_all_pending() -> None:
         # Integration unload: cancel every outstanding settle timer, then drop
@@ -132,7 +163,7 @@ def _install_ha_call_later_scheduler(
                 )
         pydreo_manager.set_schedule_call_later(None)
 
-    config_entry.async_on_unload(_cancel_all_pending)
+    return _cancel_all_pending
 
 
 def _backfill_unique_id(hass: HomeAssistant, config_entry: DreoConfigEntry, username: str | None) -> None:
@@ -152,69 +183,9 @@ def _raise_login_failure(pydreo_manager) -> None:
     raise ConfigEntryNotReady("Unable to login to the Dreo server")
 
 
-async def async_setup_entry(hass: HomeAssistant, config_entry: DreoConfigEntry) -> bool:
-    "HomeAssistant EntryPoint"
-    _LOGGER.debug("async_setup_entry: Starting setup")
-
-    _LOGGER.debug("async_setup_entry: Username: %s", config_entry.data.get(CONF_USERNAME))
-    username = config_entry.data.get(CONF_USERNAME)
-    password = config_entry.data.get(CONF_PASSWORD)
-    auto_reconnect = config_entry.options.get(CONF_AUTO_RECONNECT)
-    if auto_reconnect is None:
-        _LOGGER.debug("async_setup_entry: auto_reconnect is None.  Default to True")
-        auto_reconnect = True
-
-    _backfill_unique_id(hass, config_entry, username)
-
-    region = config_entry.data.get(CONF_REGION)
-    if region == "auto":
-        region = None
-
-    from .pydreo import PyDreo  # pylint: disable=C0415
+def _platforms_for_device_types(device_types: set) -> set:
+    """Return the HA platforms needed for the given Dreo device types."""
     from .pydreo.constant import DreoDeviceType  # pylint: disable=C0415
-
-    if DEBUG_TEST_MODE:
-        _LOGGER.error("async_setup_entry: DEBUG_TEST_MODE is True!")
-        from .debug_test_mode import get_debug_test_mode_payload  # pylint: disable=C0415
-
-        debug__test_mode_payload: dict = get_debug_test_mode_payload("custom_components/dreo")
-        if debug__test_mode_payload is None:
-            _LOGGER.error("async_setup_entry: Unable to get debug test mode payload.  Exiting setup.")
-            return False
-        pydreo_manager = PyDreo("TEST_EMAIL", "TEST_PASSWORD", redact=True, debug_test_mode=True, debug_test_mode_payload=debug__test_mode_payload)
-    else:
-        pydreo_manager = PyDreo(username, password, region=region)
-        pydreo_manager.auto_reconnect = auto_reconnect
-
-    # Prefer HA event-loop timers over raw threading.Timer for delayed device work.
-    try:
-        _install_ha_call_later_scheduler(hass, pydreo_manager, config_entry)
-        _LOGGER.debug("async_setup_entry: installed HA async_call_later scheduler for PyDreo")
-    except Exception as ex:  # pylint: disable=broad-except
-        # Integration continues with threading.Timer fallback; surface clearly.
-        _LOGGER.warning(
-            "async_setup_entry: failed to install HA call_later scheduler (%s: %s); delayed fixedconf settle will use threading.Timer fallback",
-            type(ex).__name__,
-            ex,
-        )
-
-    login = await hass.async_add_executor_job(pydreo_manager.login)
-
-    if not login:
-        _raise_login_failure(pydreo_manager)
-
-    load_devices = await hass.async_add_executor_job(pydreo_manager.load_devices)
-
-    if not load_devices:
-        _LOGGER.error("async_setup_entry: Unable to load devices from the dreo server")
-        raise ConfigEntryNotReady("Unable to load devices from the Dreo server")
-
-    _LOGGER.debug("async_setup_entry: Checking for supported installed device types")
-    device_types = set()
-    for device in pydreo_manager.devices:
-        device_types.add(device.type)
-    _LOGGER.debug("async_setup_entry: Device types found are: %s", device_types)
-    _LOGGER.info("async_setup_entry: %d Dreo devices found", len(pydreo_manager.devices))
 
     platforms = set()
     if (
@@ -281,6 +252,79 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: DreoConfigEntry) 
         platforms.add(Platform.BINARY_SENSOR)
         platforms.add(Platform.LIGHT)
         platforms.add(Platform.SELECT)
+
+    return platforms
+
+
+def _try_install_scheduler(hass: HomeAssistant, pydreo_manager: "PyDreo", config_entry: DreoConfigEntry) -> None:
+    """Install the HA call_later scheduler, falling back to threading.Timer on failure."""
+    # Prefer HA event-loop timers over raw threading.Timer for delayed device work.
+    try:
+        _install_ha_call_later_scheduler(hass, pydreo_manager, config_entry)
+        _LOGGER.debug("async_setup_entry: installed HA async_call_later scheduler for PyDreo")
+    except Exception as ex:  # pylint: disable=broad-except
+        # Integration continues with threading.Timer fallback; surface clearly.
+        _LOGGER.warning(
+            "async_setup_entry: failed to install HA call_later scheduler (%s: %s); delayed fixedconf settle will use threading.Timer fallback",
+            type(ex).__name__,
+            ex,
+        )
+
+
+async def async_setup_entry(hass: HomeAssistant, config_entry: DreoConfigEntry) -> bool:
+    "HomeAssistant EntryPoint"
+    _LOGGER.debug("async_setup_entry: Starting setup")
+
+    _LOGGER.debug("async_setup_entry: Username: %s", config_entry.data.get(CONF_USERNAME))
+    username = config_entry.data.get(CONF_USERNAME)
+    password = config_entry.data.get(CONF_PASSWORD)
+    auto_reconnect = config_entry.options.get(CONF_AUTO_RECONNECT)
+    if auto_reconnect is None:
+        _LOGGER.debug("async_setup_entry: auto_reconnect is None.  Default to True")
+        auto_reconnect = True
+
+    _backfill_unique_id(hass, config_entry, username)
+
+    region = config_entry.data.get(CONF_REGION)
+    if region == "auto":
+        region = None
+
+    from .pydreo import PyDreo  # pylint: disable=C0415
+
+    if DEBUG_TEST_MODE:
+        _LOGGER.error("async_setup_entry: DEBUG_TEST_MODE is True!")
+        from .debug_test_mode import get_debug_test_mode_payload  # pylint: disable=C0415
+
+        debug__test_mode_payload: dict = get_debug_test_mode_payload("custom_components/dreo")
+        if debug__test_mode_payload is None:
+            _LOGGER.error("async_setup_entry: Unable to get debug test mode payload.  Exiting setup.")
+            return False
+        pydreo_manager = PyDreo("TEST_EMAIL", "TEST_PASSWORD", redact=True, debug_test_mode=True, debug_test_mode_payload=debug__test_mode_payload)
+    else:
+        pydreo_manager = PyDreo(username, password, region=region)
+        pydreo_manager.auto_reconnect = auto_reconnect
+
+    _try_install_scheduler(hass, pydreo_manager, config_entry)
+
+    login = await hass.async_add_executor_job(pydreo_manager.login)
+
+    if not login:
+        _raise_login_failure(pydreo_manager)
+
+    load_devices = await hass.async_add_executor_job(pydreo_manager.load_devices)
+
+    if not load_devices:
+        _LOGGER.error("async_setup_entry: Unable to load devices from the dreo server")
+        raise ConfigEntryNotReady("Unable to load devices from the Dreo server")
+
+    _LOGGER.debug("async_setup_entry: Checking for supported installed device types")
+    device_types = set()
+    for device in pydreo_manager.devices:
+        device_types.add(device.type)
+    _LOGGER.debug("async_setup_entry: Device types found are: %s", device_types)
+    _LOGGER.info("async_setup_entry: %d Dreo devices found", len(pydreo_manager.devices))
+
+    platforms = _platforms_for_device_types(device_types)
 
     pydreo_manager.start_transport()
 

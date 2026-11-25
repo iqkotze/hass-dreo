@@ -563,32 +563,38 @@ class DreoRGBICLightHA(DreoLightHA):
             if self._uses_rgbic_api and effect in self.effect_list:
                 self.pydreo_device.set_rgbic_effect(effect)
             elif self._uses_effect_id and effect.startswith("Effect "):
-                # Effect ID system: construct rgbeffectid from base + index
-                try:
-                    selected_effect = int(effect.split(" ")[1])
-                    effect_range = getattr(self.pydreo_device, "rgb_effect_range", None)
-                    if effect_range is not None:
-                        low, high = effect_range
-                        effect_idx = low + selected_effect - 1
-                        if effect_idx < low or effect_idx > high:
-                            _LOGGER.warning("turn_on: Effect %s out of supported range %s", effect, effect_range)
-                            return
-                    else:
-                        effect_idx = selected_effect - 1
-                    current_id = getattr(self.pydreo_device, "rgb_effect_id", None)
-                    if current_id is not None:
-                        new_id = self._build_effect_id(current_id, effect_idx)
-                        if new_id is not None:
-                            self.pydreo_device.rgb_effect_id = new_id
-                except (ValueError, IndexError):
-                    _LOGGER.warning("turn_on: Invalid effect name %s", effect)
+                self._set_effect_id_from_name(effect)
             elif effect.startswith("Preset "):
-                # Preset system: send rgbpresetsel index
-                try:
-                    preset_idx = int(effect.split(" ")[1]) - 1
-                    self.pydreo_device.rgb_preset_sel = preset_idx
-                except (ValueError, IndexError):
-                    _LOGGER.warning("turn_on: Invalid effect name %s", effect)
+                self._set_preset_from_name(effect)
+
+    def _set_effect_id_from_name(self, effect: str) -> None:
+        """Effect ID system: construct rgbeffectid from base + index."""
+        try:
+            selected_effect = int(effect.split(" ")[1])
+            effect_range = getattr(self.pydreo_device, "rgb_effect_range", None)
+            if effect_range is not None:
+                low, high = effect_range
+                effect_idx = low + selected_effect - 1
+                if effect_idx < low or effect_idx > high:
+                    _LOGGER.warning("turn_on: Effect %s out of supported range %s", effect, effect_range)
+                    return
+            else:
+                effect_idx = selected_effect - 1
+            current_id = getattr(self.pydreo_device, "rgb_effect_id", None)
+            if current_id is not None:
+                new_id = self._build_effect_id(current_id, effect_idx)
+                if new_id is not None:
+                    self.pydreo_device.rgb_effect_id = new_id
+        except (ValueError, IndexError):
+            _LOGGER.warning("turn_on: Invalid effect name %s", effect)
+
+    def _set_preset_from_name(self, effect: str) -> None:
+        """Preset system: send rgbpresetsel index."""
+        try:
+            preset_idx = int(effect.split(" ")[1]) - 1
+            self.pydreo_device.rgb_preset_sel = preset_idx
+        except (ValueError, IndexError):
+            _LOGGER.warning("turn_on: Invalid effect name %s", effect)
 
     def turn_off(self, **kwargs: Any) -> None:
         """Turn off RGBIC and cancel an effect still waiting for its wake delay."""

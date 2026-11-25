@@ -10,6 +10,52 @@ from .const import DEBUG_TEST_MODE_DIRECTORY_NAME, DEBUG_TEST_MODE_DEVICES_FILE_
 _LOGGER = logging.getLogger(__name__)
 
 
+def _is_unique_device(serial_number, device_id, seen_serial_numbers: set, seen_device_ids: set) -> bool:
+    """Return True if the device has a serial number and id that were not seen before; log otherwise."""
+    if not serial_number:
+        _LOGGER.error("DEBUG_TEST_MODE: Device missing serial number")
+        return False
+
+    if not device_id:
+        _LOGGER.error("DEBUG_TEST_MODE: Device missing device id")
+        return False
+
+    if serial_number in seen_serial_numbers:
+        _LOGGER.error("DEBUG_TEST_MODE: Duplicate serial number found: %s", serial_number)
+        return False
+
+    if device_id in seen_device_ids:
+        _LOGGER.error("DEBUG_TEST_MODE: Duplicate device id found: %s", device_id)
+        return False
+
+    return True
+
+
+def _load_device_settings(base_dir: str, serial_number: str, debug_test_mode_payload: dict) -> None:
+    """Load all device setting files for this serial number into the payload."""
+    # Pattern: get_device_setting_{serial_number}_*.json
+    setting_pattern = f"{base_dir}/{DEBUG_TEST_MODE_DIRECTORY_NAME}/get_device_setting_{serial_number}_*.json"
+    setting_files = glob.glob(setting_pattern)
+
+    for setting_file in setting_files:
+        # Extract the setting name from the filename
+        # Format: get_device_setting_{serial_number}_{settingName}.json
+        filename = os.path.basename(setting_file)
+        # Remove the prefix and suffix to get the setting name
+        prefix = f"get_device_setting_{serial_number}_"
+        if filename.startswith(prefix) and filename.endswith(".json"):
+            setting_name = filename[len(prefix) : -5]  # Remove prefix and ".json"
+
+            setting_data = load_test_file(base_dir, filename)
+            if setting_data is not None:
+                # Store with key format: {serial_number}_{settingName}
+                setting_key = f"{serial_number}_{setting_name}"
+                debug_test_mode_payload[setting_key] = setting_data
+                _LOGGER.debug("DEBUG_TEST_MODE: Loaded device setting %s for %s", setting_name, serial_number)
+            else:
+                _LOGGER.error("DEBUG_TEST_MODE: Failed to load device setting file: %s", filename)
+
+
 def get_debug_test_mode_payload(base_dir: str) -> dict:
     """Get the debug test mode payload from the file."""
 
@@ -36,20 +82,7 @@ def get_debug_test_mode_payload(base_dir: str) -> dict:
         serial_number = device.get("sn")
         device_id = device.get("deviceId")
 
-        if not serial_number:
-            _LOGGER.error("DEBUG_TEST_MODE: Device missing serial number")
-            continue
-
-        if not device_id:
-            _LOGGER.error("DEBUG_TEST_MODE: Device missing device id")
-            continue
-
-        if serial_number in seen_serial_numbers:
-            _LOGGER.error("DEBUG_TEST_MODE: Duplicate serial number found: %s", serial_number)
-            continue
-
-        if device_id in seen_device_ids:
-            _LOGGER.error("DEBUG_TEST_MODE: Duplicate device id found: %s", device_id)
+        if not _is_unique_device(serial_number, device_id, seen_serial_numbers, seen_device_ids):
             continue
 
         seen_serial_numbers.add(serial_number)
@@ -64,28 +97,7 @@ def get_debug_test_mode_payload(base_dir: str) -> dict:
         _LOGGER.debug("get_debug_test_mode_payload: Loaded data for serial number %s: %s", serial_number, device_state)
         debug_test_mode_payload[serial_number] = device_state
 
-        # Load all device setting files for this serial number
-        # Pattern: get_device_setting_{serial_number}_*.json
-        setting_pattern = f"{base_dir}/{DEBUG_TEST_MODE_DIRECTORY_NAME}/get_device_setting_{serial_number}_*.json"
-        setting_files = glob.glob(setting_pattern)
-
-        for setting_file in setting_files:
-            # Extract the setting name from the filename
-            # Format: get_device_setting_{serial_number}_{settingName}.json
-            filename = os.path.basename(setting_file)
-            # Remove the prefix and suffix to get the setting name
-            prefix = f"get_device_setting_{serial_number}_"
-            if filename.startswith(prefix) and filename.endswith(".json"):
-                setting_name = filename[len(prefix) : -5]  # Remove prefix and ".json"
-
-                setting_data = load_test_file(base_dir, filename)
-                if setting_data is not None:
-                    # Store with key format: {serial_number}_{settingName}
-                    setting_key = f"{serial_number}_{setting_name}"
-                    debug_test_mode_payload[setting_key] = setting_data
-                    _LOGGER.debug("DEBUG_TEST_MODE: Loaded device setting %s for %s", setting_name, serial_number)
-                else:
-                    _LOGGER.error("DEBUG_TEST_MODE: Failed to load device setting file: %s", filename)
+        _load_device_settings(base_dir, serial_number, debug_test_mode_payload)
 
     return debug_test_mode_payload
 
