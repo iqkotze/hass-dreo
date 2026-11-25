@@ -2,6 +2,8 @@
 
 # pylint: disable=E1123
 from unittest.mock import patch, MagicMock
+from homeassistant.const import EntityCategory
+
 
 from custom_components.dreo import number
 from custom_components.dreo.number import DreoNumberHA, DreoNumberEntityDescription, NUMBERS, get_device_range
@@ -202,3 +204,9 @@ class TestDreoNumberHA(TestDeviceBase):
 
         result = get_device_range(device, desc)
         assert result is None
+
+    def test_number_entity_category_config_and_primary(self):
+        """#8 K3: Oscillation Angle is CONFIG, Target Humidity has no category."""
+        by_key = {d.key: d for d in NUMBERS}
+        assert by_key["Oscillation Angle"].entity_category == EntityCategory.CONFIG
+        assert by_key["Target Humidity"].entity_category is None

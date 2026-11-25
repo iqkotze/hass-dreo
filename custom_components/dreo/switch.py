@@ -57,12 +57,14 @@ SWITCHES: tuple[DreoSwitchEntityDescription, ...] = (
     DreoSwitchEntityDescription(
         key="Display Auto Off",
         translation_key="display_auto_off",
+        entity_category=EntityCategory.CONFIG,
         attr_name="display_auto_off",
         icon="mdi:monitor",
     ),
     DreoSwitchEntityDescription(
         key="Panel Sound",
         translation_key="panel_sound",
+        entity_category=EntityCategory.CONFIG,
         attr_name="panel_sound",
         icon="mdi:volume-high",
     ),
@@ -75,6 +77,7 @@ SWITCHES: tuple[DreoSwitchEntityDescription, ...] = (
     DreoSwitchEntityDescription(
         key="Adaptive Brightness",
         translation_key="adaptive_brightness",
+        entity_category=EntityCategory.CONFIG,
         attr_name="adaptive_brightness",
         icon="mdi:monitor",
     ),
@@ -93,6 +96,7 @@ SWITCHES: tuple[DreoSwitchEntityDescription, ...] = (
     DreoSwitchEntityDescription(
         key="Window Detection",
         translation_key="window_detection",
+        entity_category=EntityCategory.CONFIG,
         attr_name="window_detection",
         icon="mdi:window-open-variant",
     ),
@@ -108,12 +112,14 @@ SWITCHES: tuple[DreoSwitchEntityDescription, ...] = (
     DreoSwitchEntityDescription(
         key="Child Lock",
         translation_key="childlockon",
+        entity_category=EntityCategory.CONFIG,
         attr_name="childlockon",
         icon="mdi:lock",
     ),
     DreoSwitchEntityDescription(
         key="Presence Sensor",
         translation_key="locatemeon",
+        entity_category=EntityCategory.CONFIG,
         attr_name="locatemeon",
         icon="mdi:crosshairs-gps",
     ),
@@ -132,18 +138,21 @@ SWITCHES: tuple[DreoSwitchEntityDescription, ...] = (
     DreoSwitchEntityDescription(
         key="Display Light",
         translation_key="display_light",
+        entity_category=EntityCategory.CONFIG,
         attr_name="display_light",
         icon="mdi:led-on",
     ),
     DreoSwitchEntityDescription(
         key="Auto Turn On",
         translation_key="auto_mode",
+        entity_category=EntityCategory.CONFIG,
         attr_name="auto_mode",
         icon="mdi:autorenew",
     ),
     DreoSwitchEntityDescription(
         key="Schedule",
         translation_key="scheon",
+        entity_category=EntityCategory.CONFIG,
         attr_name="scheon",
         icon="mdi:calendar",
     ),
@@ -247,6 +256,8 @@ class DreoSwitchHA(DreoBaseDeviceHA, SwitchEntity):
         self._attr_has_entity_name = True
         del self._attr_name
         self._attr_translation_key = description.translation_key
+        if description.entity_category is not None:
+            self._attr_entity_category = description.entity_category
         self._attr_unique_id = f"{super().unique_id}-{description.key}"
 
         _LOGGER.info("New DreoSwitchHA instance(%s), unique ID %s", pydreo_base_device.name, self._attr_unique_id)

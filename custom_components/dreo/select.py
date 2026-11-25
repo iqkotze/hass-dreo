@@ -60,6 +60,7 @@ SELECTS: tuple[DreoSelectEntityDescription, ...] = (
     DreoSelectEntityDescription(
         key="Ambient Light Mode",
         translation_key="ambient_light_mode",
+        entity_category=EntityCategory.CONFIG,
         attr_name="rgbmode",
         icon="mdi:lightbulb-cog",
         options_list=["humidity", "color"],
@@ -79,6 +80,7 @@ SELECTS: tuple[DreoSelectEntityDescription, ...] = (
     DreoSelectEntityDescription(
         key="Display Mode",
         translation_key="display_mode",
+        entity_category=EntityCategory.CONFIG,
         attr_name="lightmode",
         icon="mdi:monitor",
         options_list=["off", "on", "auto"],
@@ -89,6 +91,7 @@ SELECTS: tuple[DreoSelectEntityDescription, ...] = (
     DreoSelectEntityDescription(
         key="Horizontal Oscillation Angle",
         translation_key="horizontal_oscillation_angle",
+        entity_category=EntityCategory.CONFIG,
         attr_name="horizontal_oscillation_span",
         icon="mdi:angle-acute",
         options_list=[str(span) for span in HEATER_AXIS_HORIZONTAL_SPANS],
@@ -98,6 +101,7 @@ SELECTS: tuple[DreoSelectEntityDescription, ...] = (
     DreoSelectEntityDescription(
         key="Vertical Oscillation Angle",
         translation_key="vertical_oscillation_angle",
+        entity_category=EntityCategory.CONFIG,
         attr_name="vertical_oscillation_span",
         icon="mdi:angle-acute",
         options_list=[str(span) for span in HEATER_AXIS_VERTICAL_SPANS],
@@ -147,6 +151,8 @@ class DreoSelectHA(DreoBaseDeviceHA, SelectEntity):
         self._attr_has_entity_name = True
         del self._attr_name
         self._attr_translation_key = description.translation_key
+        if description.entity_category is not None:
+            self._attr_entity_category = description.entity_category
         self._attr_unique_id = f"{super().unique_id}-{description.key}"
         self._attr_options = self._get_device_options()
 

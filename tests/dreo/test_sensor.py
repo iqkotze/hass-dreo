@@ -2,6 +2,8 @@
 
 from datetime import datetime, timezone
 from unittest.mock import patch
+from homeassistant.const import EntityCategory
+
 
 from homeassistant.components.sensor import SensorDeviceClass
 
@@ -252,3 +254,9 @@ class TestDreoSensorHA(TestDeviceBase):
         target_reached = next(e for e in entities if e.entity_description.key == "Target Humidity Reached")
         assert target_reached.native_value == "yes"
         assert target_reached.native_value in target_reached._attr_options
+
+    def test_sensor_entity_category_diagnostic_and_primary(self):
+        """#8 K3: Status is DIAGNOSTIC, Temperature has no category."""
+        by_key = {d.key: d for d in SENSORS}
+        assert by_key["Status"].entity_category == EntityCategory.DIAGNOSTIC
+        assert by_key["Temperature"].entity_category is None

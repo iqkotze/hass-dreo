@@ -75,6 +75,7 @@ NUMBERS: tuple[DreoNumberEntityDescription, ...] = (
     DreoNumberEntityDescription(
         key="Horizontal Oscillation Angle Left",
         translation_key="horizontal_osc_angle_left",
+        entity_category=EntityCategory.CONFIG,
         attr_name="horizontal_osc_angle_left",
         icon="mdi:vector-radius",
         min_value=-60,
@@ -85,6 +86,7 @@ NUMBERS: tuple[DreoNumberEntityDescription, ...] = (
     DreoNumberEntityDescription(
         key="Horizontal Oscillation Angle Right",
         translation_key="horizontal_osc_angle_right",
+        entity_category=EntityCategory.CONFIG,
         attr_name="horizontal_osc_angle_right",
         icon="mdi:vector-radius",
         min_value=-60,
@@ -95,6 +97,7 @@ NUMBERS: tuple[DreoNumberEntityDescription, ...] = (
     DreoNumberEntityDescription(
         key="Vertical Oscillation Angle Top",
         translation_key="vertical_osc_angle_top",
+        entity_category=EntityCategory.CONFIG,
         attr_name="vertical_osc_angle_top",
         icon="mdi:vector-radius",
         min_value=0,
@@ -105,6 +108,7 @@ NUMBERS: tuple[DreoNumberEntityDescription, ...] = (
     DreoNumberEntityDescription(
         key="Vertical Oscillation Angle Bottom",
         translation_key="vertical_osc_angle_bottom",
+        entity_category=EntityCategory.CONFIG,
         attr_name="vertical_osc_angle_bottom",
         icon="mdi:vector-radius",
         min_value=0,
@@ -115,6 +119,7 @@ NUMBERS: tuple[DreoNumberEntityDescription, ...] = (
     DreoNumberEntityDescription(
         key="Oscillation Angle",
         translation_key="osc_angle",
+        entity_category=EntityCategory.CONFIG,
         attr_name="shakehorizonangle",
         icon="mdi:angle-acute",
         min_value=30,
@@ -125,6 +130,7 @@ NUMBERS: tuple[DreoNumberEntityDescription, ...] = (
     DreoNumberEntityDescription(
         key="Horizontal Oscillation Angle",
         translation_key="horizontal_oscillation_angle",
+        entity_category=EntityCategory.CONFIG,
         attr_name="horizontal_oscillation_angle",
         icon="mdi:angle-acute",
         min_value=-60,
@@ -135,6 +141,7 @@ NUMBERS: tuple[DreoNumberEntityDescription, ...] = (
     DreoNumberEntityDescription(
         key="Vertical Oscillation Angle",
         translation_key="vertical_oscillation_angle",
+        entity_category=EntityCategory.CONFIG,
         attr_name="vertical_oscillation_angle",
         icon="mdi:angle-acute",
         min_value=0,
@@ -174,6 +181,7 @@ NUMBERS: tuple[DreoNumberEntityDescription, ...] = (
     DreoNumberEntityDescription(
         key="Ambient Light Threshold Low",
         translation_key="ambient_light_threshold_low",
+        entity_category=EntityCategory.CONFIG,
         attr_name="rgbth_low",
         icon="mdi:water-percent",
         min_value=15,
@@ -186,6 +194,7 @@ NUMBERS: tuple[DreoNumberEntityDescription, ...] = (
     DreoNumberEntityDescription(
         key="Ambient Light Threshold High",
         translation_key="ambient_light_threshold_high",
+        entity_category=EntityCategory.CONFIG,
         attr_name="rgbth_high",
         icon="mdi:water-percent",
         min_value=15,
@@ -353,6 +362,7 @@ class DreoTemperatureOffsetNumberHA(DreoNumberHA):  # pylint: disable=abstract-m
             DreoNumberEntityDescription(
                 key="Temperature Offset",
                 translation_key="temperature_offset",
+                entity_category=EntityCategory.CONFIG,
                 attr_name="temperature_offset",
                 icon="mdi:thermometer-lines",
                 step=1,

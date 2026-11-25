@@ -2,6 +2,8 @@
 
 # pylint: disable=E1123
 from unittest.mock import patch
+from homeassistant.const import EntityCategory
+
 
 from custom_components.dreo import switch
 from custom_components.dreo.pydreo.constant import DreoDeviceType
@@ -205,3 +207,11 @@ class TestDreoSwitchHA(TestDeviceBase):
         heater_switches = [e for e in entities if "Heater" in e.pydreo_device.name]
         assert len(fan_switches) == 2
         assert len(heater_switches) == 2
+
+    def test_switch_entity_category_config_and_primary(self):
+        """#8 K3: Child Lock is CONFIG, Light has no category."""
+        with patch(PATCH_UPDATE_HA_STATE):
+            device = self.create_mock_device(name="Test Fan", serial_number="FAN001", features={"childlockon": True})
+            by_key = {d.key: d for d in SWITCHES}
+            assert DreoSwitchHA(device, by_key["Child Lock"]).entity_category == EntityCategory.CONFIG
+            assert DreoSwitchHA(device, by_key["Light"]).entity_category is None
