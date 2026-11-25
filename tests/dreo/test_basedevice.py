@@ -40,6 +40,26 @@ class TestDreoBaseDeviceHA(TestDeviceBase):
             assert info["manufacturer"] == "Dreo"
             assert (DOMAIN, "DEV001") in info["identifiers"]
 
+    def test_base_device_info_versions_none_when_unknown(self):
+        """#10 K5: device_info carries None versions for a device that reports none."""
+        with patch(PATCH_UPDATE_HA_STATE):
+            device = self.create_mock_device(name="Test Fan", serial_number="FAN001")
+            device.mcu_firmware_version = None
+            device.mcu_hardware_model = None
+            info = DreoBaseDeviceHA(device).device_info
+            assert info["sw_version"] is None
+            assert info["hw_version"] is None
+
+    def test_base_device_info_versions_when_reported(self):
+        """#10 K5: device_info carries the reported firmware and hardware versions."""
+        with patch(PATCH_UPDATE_HA_STATE):
+            device = self.create_mock_device(name="Test Fan", serial_number="FAN001")
+            device.mcu_firmware_version = "3.0.6"
+            device.mcu_hardware_model = "SC95F8615B/EU"
+            info = DreoBaseDeviceHA(device).device_info
+            assert info["sw_version"] == "3.0.6"
+            assert info["hw_version"] == "SC95F8615B/EU"
+
     def test_base_device_available(self):
         """Test available property returns True when connected is None (unknown)."""
         with patch(PATCH_UPDATE_HA_STATE):

@@ -22,8 +22,6 @@ from .constant import (
     WINOPENON_KEY,
     RGBON_KEY,
     RGB_BRI,
-    MCU_FIRMWARE_VERSION_KEY,
-    MCU_HARDWARE_MODEL_KEY,
     CTLSTATUS_KEY,
     ECOLEVEL_KEY,
     CHILDLOCKON_KEY,
@@ -136,8 +134,6 @@ class PyDreoHeater(PyDreoBaseDevice):
         self._winopenon = None
         self._rgbon = None
         self._rgbbri = None
-        self._mcu_firmware_version = None
-        self._mcu_hardware_model = None
 
         self._htalevel_range = None
 
@@ -503,16 +499,6 @@ class PyDreoHeater(PyDreoBaseDevice):
             _LOGGER.debug("window_detection: window_detection - value already %s, skipping command", value)
             return
         self._send_command(WINOPENON_KEY, value)
-
-    @property
-    def mcu_firmware_version(self) -> str | None:
-        """Get the MCU firmware version."""
-        return self._mcu_firmware_version
-
-    @property
-    def mcu_hardware_model(self) -> str | None:
-        """Get the MCU hardware model."""
-        return self._mcu_hardware_model
 
     @property
     def fault_code(self) -> int | None:
@@ -938,8 +924,6 @@ class PyDreoHeater(PyDreoBaseDevice):
         self._winopenon = self.get_state_update_value(state, WINOPENON_KEY)
         self._rgbon = self.get_state_update_value(state, RGBON_KEY)
         self._rgbbri = self.get_state_update_value(state, RGB_BRI)
-        self._mcu_firmware_version = self.get_state_update_value(state, MCU_FIRMWARE_VERSION_KEY)
-        self._mcu_hardware_model = self.get_state_update_value(state, MCU_HARDWARE_MODEL_KEY)
         self._fixed_conf = self.get_state_update_value(state, FIXEDCONF_KEY)
         self._fault_code = self._parse_fault_code(self.get_state_update_value(state, FAULT_CODE_KEY))
 

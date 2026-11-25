@@ -17,6 +17,8 @@ from .constant import (
     TIMERON_KEY,
     TIMEROFF_KEY,
     TIMER_MAX_MINUTES,
+    MCU_FIRMWARE_VERSION_KEY,
+    MCU_HARDWARE_MODEL_KEY,
 )
 from .models import DreoDeviceDetails
 
@@ -89,6 +91,8 @@ class PyDreoBaseDevice:
         self._connected = None
         self._timer_on = None
         self._timer_off = None
+        self._mcu_firmware_version = None
+        self._mcu_hardware_model = None
 
         self._feature_key_names: Dict[str, str] = {}
 
@@ -289,6 +293,8 @@ class PyDreoBaseDevice:
 
         self._timer_on = self._timer_duration(self.get_state_update_value(state, TIMERON_KEY))
         self._timer_off = self._timer_duration(self.get_state_update_value(state, TIMEROFF_KEY))
+        self._mcu_firmware_version = self.get_state_update_value(state, MCU_FIRMWARE_VERSION_KEY)
+        self._mcu_hardware_model = self.get_state_update_value(state, MCU_HARDWARE_MODEL_KEY)
 
     @staticmethod
     def _timer_duration(value) -> int | None:
@@ -296,6 +302,16 @@ class PyDreoBaseDevice:
         if isinstance(value, dict):
             value = value.get("du")
         return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+    @property
+    def mcu_firmware_version(self) -> str | None:
+        """Get the MCU firmware version, or None if the device does not report it."""
+        return self._mcu_firmware_version
+
+    @property
+    def mcu_hardware_model(self) -> str | None:
+        """Get the MCU hardware model, or None if the device does not report it."""
+        return self._mcu_hardware_model
 
     @property
     def timer_on(self) -> int | None:

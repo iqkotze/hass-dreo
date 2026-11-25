@@ -53,6 +53,8 @@ class DreoBaseDeviceHA(Entity):
             name=self.pydreo_device.name,
             manufacturer="Dreo",
             model=self.pydreo_device.model,
+            sw_version=self.pydreo_device.mcu_firmware_version,
+            hw_version=self.pydreo_device.mcu_hardware_model,
         )
 
     @property
