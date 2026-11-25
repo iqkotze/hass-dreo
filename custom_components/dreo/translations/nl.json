@@ -383,5 +383,13 @@
         "name": "Sfeerverlichting"
       }
     }
+  },
+  "exceptions": {
+    "invalid_value": {
+      "message": "{value} is geen geldige waarde voor {name} (toegestaan: {range})."
+    },
+    "command_failed": {
+      "message": "Dreo heeft de opdracht voor {device} niet geaccepteerd."
+    }
   }
 }

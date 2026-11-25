@@ -383,5 +383,13 @@
         "name": "Umgebungslicht"
       }
     }
+  },
+  "exceptions": {
+    "invalid_value": {
+      "message": "{value} ist kein gültiger Wert für {name} (erlaubt: {range})."
+    },
+    "command_failed": {
+      "message": "Dreo hat den Befehl für {device} nicht angenommen."
+    }
   }
 }

@@ -383,5 +383,13 @@
         "name": "Światło otoczenia"
       }
     }
+  },
+  "exceptions": {
+    "invalid_value": {
+      "message": "{value} nie jest prawidłową wartością dla {name} (dozwolone: {range})."
+    },
+    "command_failed": {
+      "message": "Dreo nie przyjęło polecenia dla {device}."
+    }
   }
 }

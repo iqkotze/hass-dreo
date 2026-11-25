@@ -383,5 +383,13 @@
         "name": "Noční osvětlení"
       }
     }
+  },
+  "exceptions": {
+    "invalid_value": {
+      "message": "{value} není platná hodnota pro {name} (povoleno: {range})."
+    },
+    "command_failed": {
+      "message": "Dreo nepřijalo příkaz pro {device}."
+    }
   }
 }

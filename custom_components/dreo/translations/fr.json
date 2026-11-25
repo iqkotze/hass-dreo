@@ -383,5 +383,13 @@
         "name": "Lumière d'ambiance"
       }
     }
+  },
+  "exceptions": {
+    "invalid_value": {
+      "message": "{value} n'est pas une valeur valide pour {name} (autorisé : {range})."
+    },
+    "command_failed": {
+      "message": "Dreo n'a pas accepté la commande pour {device}."
+    }
   }
 }

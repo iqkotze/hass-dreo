@@ -1,9 +1,35 @@
 """BaseDevice utilities for Dreo Component."""
 
+from collections.abc import Iterator
+from contextlib import contextmanager
+
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+
+from .pydreo.exceptions import DreoCommandRejectedError, DreoInvalidValueError
 from .pydreo.pydreobasedevice import PyDreoBaseDevice
 from .haimports import *  # pylint: disable=W0401,W0614
 
 from .const import DOMAIN
+
+
+@contextmanager
+def dreo_errors(device_name: str) -> Iterator[None]:
+    """Convert PyDreo errors into translated Home Assistant errors."""
+    try:
+        yield
+    except DreoInvalidValueError as err:
+        valid_range = "–" if err.valid_range is None else f"{err.valid_range[0]}–{err.valid_range[1]}"
+        raise ServiceValidationError(
+            translation_domain=DOMAIN,
+            translation_key="invalid_value",
+            translation_placeholders={"name": err.name, "value": str(err.value), "range": valid_range},
+        ) from err
+    except (DreoCommandRejectedError, RuntimeError) as err:
+        raise HomeAssistantError(
+            translation_domain=DOMAIN,
+            translation_key="command_failed",
+            translation_placeholders={"device": device_name},
+        ) from err
 
 
 class DreoBaseDeviceHA(Entity):

@@ -13,7 +13,7 @@ from .haimports import *  # pylint: disable=W0401,W0614
 from .pydreo import PyDreo
 from .pydreo.pydreobasedevice import PyDreoBaseDevice
 from .pydreo.constant import DreoDeviceType, TIMER_MAX_MINUTES
-from .dreobasedevice import DreoBaseDeviceHA
+from .dreobasedevice import DreoBaseDeviceHA, dreo_errors
 
 from .runtime import DreoConfigEntry
 
@@ -335,7 +335,8 @@ class DreoNumberHA(DreoBaseDeviceHA, NumberEntity):  # pylint: disable=abstract-
         # Humidifier controls expect integer values.
         if self.entity_description.attr_name in {"fog_level", "sleep_target_humidity"}:
             value = int(value)
-        return setattr(self.device, self.entity_description.attr_name, value)
+        with dreo_errors(self.device.name):
+            setattr(self.device, self.entity_description.attr_name, value)
 
 
 class DreoTemperatureOffsetNumberHA(DreoNumberHA):  # pylint: disable=abstract-method
@@ -385,4 +386,5 @@ class DreoTemperatureOffsetNumberHA(DreoNumberHA):  # pylint: disable=abstract-m
         return offset / 2 if self._celsius else offset
 
     def set_native_value(self, value: float) -> None:
-        self.device.temperature_offset = round(value * 2) if self._celsius else round(value)
+        with dreo_errors(self.device.name):
+            self.device.temperature_offset = round(value * 2) if self._celsius else round(value)

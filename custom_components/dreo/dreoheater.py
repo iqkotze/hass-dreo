@@ -10,7 +10,8 @@ import logging
 import math
 
 from .haimports import *  # pylint: disable=W0401,W0614
-from .dreobasedevice import DreoBaseDeviceHA
+from .dreobasedevice import DreoBaseDeviceHA, dreo_errors
+from .pydreo.exceptions import DreoInvalidValueError
 from .climatecompat import NativeClimateTemperatureCompat
 from .pydreo import (
     PyDreoHeater,
@@ -232,9 +233,13 @@ class DreoHeaterHA(DreoBaseDeviceHA, NativeClimateTemperatureCompat, ClimateEnti
             heat_level = self._preset_to_heat_level[preset_mode]
             _LOGGER.debug("set_preset_mode: set_preset_mode(%s) setting heat level to %s", self.device.name, heat_level)
             # Set heat level and ensure we're in HEAT mode
-            self.device.poweron = True
-            self.device.mode = DreoHeaterMode.HOTAIR
-            self.device.htalevel = heat_level
+            with dreo_errors(self.device.name):
+                level_range = self.device.htalevel_range if self.device.is_feature_supported("htalevel_range") else None
+                if level_range and not level_range[0] <= heat_level <= level_range[1]:
+                    raise DreoInvalidValueError("htalevel", heat_level, tuple(level_range))
+                self.device.poweron = True
+                self.device.mode = DreoHeaterMode.HOTAIR
+                self.device.htalevel = heat_level
             self.schedule_update_ha_state()
             return
 
@@ -333,7 +338,8 @@ class DreoHeaterHA(DreoBaseDeviceHA, NativeClimateTemperatureCompat, ClimateEnti
         if temp is not None:
             # The Dreo app sends a °C target as the °F value rounded up (measured on every whole degree
             # 5-35 °C, issue #951). round(..., 6) drops float noise such as 68.00000000000001 for 20 °C.
-            self.device.ecolevel = math.ceil(round(temp, 6))
+            with dreo_errors(self.device.name):
+                self.device.ecolevel = math.ceil(round(temp, 6))
             self.schedule_update_ha_state()
 
     @property
@@ -510,7 +516,8 @@ class DreoHeaterHA(DreoBaseDeviceHA, NativeClimateTemperatureCompat, ClimateEnti
             _LOGGER.warning(
                 "set_fan_mode: set_fan_mode(%s) - fan speed only applies in fan mode, device is in %s", self.device.name, self.device.mode
             )
-        self.device.coollevel = int(fan_mode)
+        with dreo_errors(self.device.name):
+            self.device.coollevel = int(fan_mode)
         self.schedule_update_ha_state()
 
     def set_humidity(self, humidity: int) -> None:

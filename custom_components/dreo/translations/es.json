@@ -383,5 +383,13 @@
         "name": "Luz ambiental"
       }
     }
+  },
+  "exceptions": {
+    "invalid_value": {
+      "message": "{value} no es un valor válido para {name} (permitido: {range})."
+    },
+    "command_failed": {
+      "message": "Dreo no aceptó el comando para {device}."
+    }
   }
 }

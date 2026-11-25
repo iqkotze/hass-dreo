@@ -383,5 +383,13 @@
         "name": "Околно осветление"
       }
     }
+  },
+  "exceptions": {
+    "invalid_value": {
+      "message": "{value} не е валидна стойност за {name} (позволено: {range})."
+    },
+    "command_failed": {
+      "message": "Dreo не прие командата за {device}."
+    }
   }
 }

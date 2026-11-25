@@ -12,7 +12,8 @@ from dataclasses import dataclass, field
 import logging
 
 from .haimports import *  # pylint: disable=W0401,W0614
-from .dreobasedevice import DreoBaseDeviceHA
+from .dreobasedevice import DreoBaseDeviceHA, dreo_errors
+from .pydreo.exceptions import DreoInvalidValueError
 from .pydreo import PyDreo
 from .pydreo.pydreobasedevice import PyDreoBaseDevice
 from .pydreo.constant import DreoDeviceType, DreoHeaterMode, HEATER_AXIS_HORIZONTAL_SPANS, HEATER_AXIS_VERTICAL_SPANS
@@ -233,6 +234,11 @@ class DreoHeatLevelSelectHA(DreoSelectHA):
         if option not in self._get_device_options():
             _LOGGER.warning("select_option: invalid heat level %s for %s", option, self.device.name)
             return
-        self.device.poweron = True
-        self.device.mode = DreoHeaterMode.HOTAIR
-        self.device.htalevel = int(option)
+        with dreo_errors(self.device.name):
+            level = int(option)
+            level_range = getattr(self.device, "htalevel_range", None) or DEFAULT_HEAT_LEVEL_RANGE
+            if not level_range[0] <= level <= level_range[1]:
+                raise DreoInvalidValueError("htalevel", level, tuple(level_range))
+            self.device.poweron = True
+            self.device.mode = DreoHeaterMode.HOTAIR
+            self.device.htalevel = level

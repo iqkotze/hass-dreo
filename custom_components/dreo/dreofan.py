@@ -8,7 +8,7 @@ from typing import Any
 
 from .haimports import *  # pylint: disable=W0401,W0614
 
-from .dreobasedevice import DreoBaseDeviceHA
+from .dreobasedevice import DreoBaseDeviceHA, dreo_errors
 from .pydreo.constant import DreoDeviceType, TemperatureUnit  # pylint: disable=C0415
 
 from .pydreo.pydreofanbase import PyDreoFanBase
@@ -189,7 +189,8 @@ class DreoFanHA(DreoBaseDeviceHA, FanEntity):
             if self.device.speed_range is None:
                 _LOGGER.error("set_percentage: speed_range not available for %s", self.device.name)
                 return
-            self.device.fan_speed = math.ceil(percentage_to_ranged_value(self.device.speed_range, percentage))
+            with dreo_errors(self.device.name):
+                self.device.fan_speed = math.ceil(percentage_to_ranged_value(self.device.speed_range, percentage))
 
         self.schedule_update_ha_state()
 

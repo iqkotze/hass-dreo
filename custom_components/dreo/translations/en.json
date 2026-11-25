@@ -383,5 +383,13 @@
         "name": "Ambient Light"
       }
     }
+  },
+  "exceptions": {
+    "invalid_value": {
+      "message": "{value} is not a valid value for {name} (allowed: {range})."
+    },
+    "command_failed": {
+      "message": "Dreo did not accept the command for {device}."
+    }
   }
 }
