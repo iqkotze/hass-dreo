@@ -591,6 +591,12 @@ class TestDreoHeaterHA(TestDeviceBase):
         assert isinstance(modes, list)
         assert HVACMode.HEAT in modes
 
+    def test_hvac_modes_have_fixed_order(self):
+        """HVAC modes are listed in a stable order: off, heat, fan only."""
+        mock, heater = self._create_full_heater()
+        modes = heater.hvac_modes
+        assert modes == sorted(modes, key=[HVACMode.OFF, HVACMode.HEAT, HVACMode.FAN_ONLY].index)
+
     def test_set_hvac_mode_unsupported(self):
         """Test set_hvac_mode with unsupported mode does nothing."""
         mock, heater = self._create_full_heater()

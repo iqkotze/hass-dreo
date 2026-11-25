@@ -50,6 +50,9 @@ DREO_HEATER_MODE_TO_HVAC_MODE = {
     DreoHeaterMode.OFF: HVACMode.OFF,
 }
 
+# Fixed display order of the HVAC modes (a set would give a random order)
+HVAC_MODE_ORDER = (HVACMode.OFF, HVACMode.HEAT, HVACMode.FAN_ONLY)
+
 # Map Dreo Heater modes to Home Assistant preset modes
 DREO_HEATER_MODE_TO_PRESET = {
     DreoHeaterMode.ECO: PRESET_ECO,
@@ -122,7 +125,7 @@ class DreoHeaterHA(DreoBaseDeviceHA, NativeClimateTemperatureCompat, ClimateEnti
 
         # Build list of unique HVAC modes from device mode_names
         hvac_modes_set = {DREO_HEATER_MODE_TO_HVAC_MODE.get(mode) for mode in self.device.modes if mode in DREO_HEATER_MODE_TO_HVAC_MODE}
-        self._attr_hvac_modes = list(hvac_modes_set)
+        self._attr_hvac_modes = [mode for mode in HVAC_MODE_ORDER if mode in hvac_modes_set]
 
         # Build preset modes from device modes that have presets, plus PRESET_NONE and heat level presets
         preset_modes_set = {DREO_HEATER_MODE_TO_PRESET.get(mode) for mode in self.device.modes if mode in DREO_HEATER_MODE_TO_PRESET}
