@@ -60,8 +60,9 @@ SELECTS: tuple[DreoSelectEntityDescription, ...] = (
         icon="mdi:lightbulb-cog",
         options_list=["humidity", "color"],
         raw_values=[0, 1],
-        exists_fn=lambda device: device.type in {DreoDeviceType.HUMIDIFIER, DreoDeviceType.EVAPORATIVE_COOLER}
-        and device.is_feature_supported("rgbmode"),
+        exists_fn=lambda device: (
+            device.type in {DreoDeviceType.HUMIDIFIER, DreoDeviceType.EVAPORATIVE_COOLER} and device.is_feature_supported("rgbmode")
+        ),
     ),
     DreoSelectEntityDescription(
         key="3D Angle Preset",

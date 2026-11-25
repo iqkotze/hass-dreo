@@ -61,13 +61,19 @@ class TestDreoHeater(IntegrationTestBase):
             assert timer_on_number.native_value == 0
             assert timer_off_number.native_value == 0
 
-            with patch("custom_components.dreo.pydreo.pydreobasedevice.time.time", return_value=1793141533.7), patch(PATCH_SEND_COMMAND) as mock_send_command:
+            with (
+                patch("custom_components.dreo.pydreo.pydreobasedevice.time.time", return_value=1793141533.7),
+                patch(PATCH_SEND_COMMAND) as mock_send_command,
+            ):
                 timer_off_number.set_native_value(90)
                 mock_send_command.assert_called_once_with(pydreo_heater, {TIMEROFF_KEY: {"ts": 1793141533, "du": 90}})
             pydreo_heater.handle_server_update_base({REPORTED_KEY: {TIMEROFF_KEY: {"du": 90, "ts": 1793141533}}})
             assert timer_off_number.native_value == 90
 
-            with patch("custom_components.dreo.pydreo.pydreobasedevice.time.time", return_value=1793141600.2), patch(PATCH_SEND_COMMAND) as mock_send_command:
+            with (
+                patch("custom_components.dreo.pydreo.pydreobasedevice.time.time", return_value=1793141600.2),
+                patch(PATCH_SEND_COMMAND) as mock_send_command,
+            ):
                 timer_on_number.set_native_value(30)
                 mock_send_command.assert_called_once_with(pydreo_heater, {TIMERON_KEY: {"ts": 1793141600, "du": 30}})
             pydreo_heater.handle_server_update_base({REPORTED_KEY: {TIMERON_KEY: {"du": 30, "ts": 1793141600}}})
@@ -165,9 +171,7 @@ class TestDreoHeater(IntegrationTestBase):
                 # device mode and causes state sync problems when powering back on.
                 for call_args in mock_send_command.call_args_list:
                     params = call_args[0][1]
-                    assert not (MODE_KEY in params and params[MODE_KEY] == "off"), (
-                        "set_hvac_mode(OFF) must not send {mode: 'off'} to the device"
-                    )
+                    assert not (MODE_KEY in params and params[MODE_KEY] == "off"), "set_hvac_mode(OFF) must not send {mode: 'off'} to the device"
 
             # Simulate server ACK: only poweron=false, no mode (common real-world pattern).
             # hvac_mode must be OFF.
@@ -179,8 +183,7 @@ class TestDreoHeater(IntegrationTestBase):
             # doesn't include the mode, hvac_mode must still correctly show HEAT (not OFF).
             pydreo_heater.handle_server_update({REPORTED_KEY: {POWERON_KEY: True}})
             assert heater_ha.hvac_mode == HVACMode.HEAT, (
-                "hvac_mode must be HEAT when device is on, even if the WebSocket "
-                "power-on update does not include the mode"
+                "hvac_mode must be HEAT when device is on, even if the WebSocket power-on update does not include the mode"
             )
 
             # Simulate server sending an empty mode string (happens when heater is off).
@@ -191,8 +194,7 @@ class TestDreoHeater(IntegrationTestBase):
             # Powering back on - hvac_mode must still be HEAT (not OFF).
             pydreo_heater.handle_server_update({REPORTED_KEY: {POWERON_KEY: True}})
             assert heater_ha.hvac_mode == HVACMode.HEAT, (
-                "hvac_mode must be HEAT after power-on even when the server sent an "
-                "empty mode string while the device was off"
+                "hvac_mode must be HEAT after power-on even when the server sent an empty mode string while the device was off"
             )
 
     def test_HSH034S(self):  # pylint: disable=invalid-name
