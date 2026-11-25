@@ -198,7 +198,11 @@ class DreoSelectHA(DreoBaseDeviceHA, SelectEntity):
             return None
 
     def select_option(self, option: str) -> None:
-        """Set a new option."""
+        """Set a new option; failed commands are shown as HA errors."""
+        with dreo_errors(self.device.name):
+            self._apply_option(option)
+
+    def _apply_option(self, option: str) -> None:
         # For int-coded selects with a device-provided options list, the list index is the raw value.
         dynamic = self._dynamic_options()
         if dynamic is not None and len(self.entity_description.raw_values) > 0:
