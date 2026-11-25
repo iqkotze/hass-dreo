@@ -2,6 +2,7 @@
 
 import logging
 from typing import TYPE_CHECKING, Dict, Optional
+from .pydreobasedevice import _is_bool, _is_int, _is_str
 from .pydreofanbase import PyDreoFanBase
 
 from .constant import (
@@ -36,6 +37,30 @@ WORKTIME_KEY = "worktime"
 WATER_LEVEL_STATUS_KEY = "wrong"
 WATER_LEVEL_KEY = "water_level"
 RGB_ON_KEY = "rgbon"
+
+# Websocket keys copied unchanged to an attribute when the value passes the check (see handle_server_update).
+_SERVER_UPDATE_FIELDS = (
+    (TEMPOFFSET_KEY, "_temperature_offset", _is_int),
+    (HORIZONTAL_OSCILLATION_KEY, "_oscillating", _is_bool),
+    (HUMIDITY_KEY, "_humidity", _is_int),
+    (MUTEON_KEY, "_mute_on", _is_bool),
+    (HUMIDITY_TARGET_KEY, "_target_humidity", _is_int),
+    (CHILDLOCKON_KEY, "_childlockon", _is_bool),
+    # WebSocket sends 1-4 directly - store as int to stay consistent with
+    # the int stored by update_state via _map_wind_mode_from_rest().
+    (WIND_MODE_KEY, "_wind_mode", _is_int),
+    (WORKTIME_KEY, "_work_time", _is_int),
+    (FOG_LEVEL_KEY, "_fog_level", _is_int),
+    (RGB_ON_KEY, "_rgb_light_on", _is_bool),
+    (RGB_LEVEL, "_rgblevel", _is_int),
+    (RGB_TH, "_rgbth", _is_str),
+    (RGB_MODE, "_rgbmode", _is_int),
+    (RGB_COLOR, "_rgbcolor", _is_int),
+    (RGB_BRI, "_rgbbri", _is_int),
+    (LIGHTON_KEY, "_light_on", _is_bool),
+    (HUMIDIFY_SUSPEND_KEY, "_suspend", _is_bool),
+    (HORIZONTAL_ANGLE_ADJ_KEY, "_horizontal_angle", _is_int),
+)
 
 # Status for water level indicator
 WATER_LEVEL_OK = "ok"
@@ -564,88 +589,18 @@ class PyDreoEvaporativeCooler(PyDreoFanBase):
         _LOGGER.debug("handle_server_update: handle_server_update")
         super().handle_server_update(message)
 
-        val_temperature_offset = self.get_server_update_key_value(message, TEMPOFFSET_KEY)
-        if isinstance(val_temperature_offset, int):
-            self._temperature_offset = val_temperature_offset
+        self._apply_server_fields(message, _SERVER_UPDATE_FIELDS)
+        self._apply_server_derived_fields(message)
 
-        val_oscon = self.get_server_update_key_value(message, HORIZONTAL_OSCILLATION_KEY)
-        if isinstance(val_oscon, bool):
-            self._oscillating = val_oscon
-
-        val_humidity = self.get_server_update_key_value(message, HUMIDITY_KEY)
-        if isinstance(val_humidity, int):
-            self._humidity = val_humidity
-
-        val_muteon = self.get_server_update_key_value(message, MUTEON_KEY)
-        if isinstance(val_muteon, bool):
-            self._mute_on = val_muteon
-
+    def _apply_server_derived_fields(self, message) -> None:
         val_humidify = self.get_server_update_key_value(message, HUMIDIFY_MODE_KEY)
-        if isinstance(val_humidify, int):
+        if _is_int(val_humidify):
             self._humidify = val_humidify == 2
 
-        val_target_humidity = self.get_server_update_key_value(message, HUMIDITY_TARGET_KEY)
-        if isinstance(val_target_humidity, int):
-            self._target_humidity = val_target_humidity
-
-        val_childlockon = self.get_server_update_key_value(message, CHILDLOCKON_KEY)
-        if isinstance(val_childlockon, bool):
-            self._childlockon = val_childlockon
-
-        val_wind_mode = self.get_server_update_key_value(message, WIND_MODE_KEY)
-        if isinstance(val_wind_mode, int):
-            # WebSocket sends 1-4 directly — store as int to stay consistent with
-            # the int stored by update_state via _map_wind_mode_from_rest().
-            self._wind_mode = val_wind_mode
-
-        val_work_time = self.get_server_update_key_value(message, WORKTIME_KEY)
-        if isinstance(val_work_time, int):
-            self._work_time = val_work_time
-
         val_water_level = self.get_server_update_key_value(message, WATER_LEVEL_STATUS_KEY)
-        if isinstance(val_water_level, int):
+        if _is_int(val_water_level):
             self._water_level = WATER_LEVEL_STATUS_MAP.get(val_water_level, val_water_level)
 
-        val_fog_level = self.get_server_update_key_value(message, FOG_LEVEL_KEY)
-        if isinstance(val_fog_level, int):
-            self._fog_level = val_fog_level
-
-        val_rgb_light_on = self.get_server_update_key_value(message, RGB_ON_KEY)
-        if isinstance(val_rgb_light_on, bool):
-            self._rgb_light_on = val_rgb_light_on
-
-        val_rgblevel = self.get_server_update_key_value(message, RGB_LEVEL)
-        if isinstance(val_rgblevel, int):
-            self._rgblevel = val_rgblevel
-
-        val_rgbth = self.get_server_update_key_value(message, RGB_TH)
-        if isinstance(val_rgbth, str):
-            self._rgbth = val_rgbth
-
-        val_rgbmode = self.get_server_update_key_value(message, RGB_MODE)
-        if isinstance(val_rgbmode, int):
-            self._rgbmode = val_rgbmode
-
-        val_rgbcolor = self.get_server_update_key_value(message, RGB_COLOR)
-        if isinstance(val_rgbcolor, int):
-            self._rgbcolor = val_rgbcolor
-
-        val_rgbbri = self.get_server_update_key_value(message, RGB_BRI)
-        if isinstance(val_rgbbri, int):
-            self._rgbbri = val_rgbbri
-
-        val_light_on = self.get_server_update_key_value(message, LIGHTON_KEY)
-        if isinstance(val_light_on, bool):
-            self._light_on = val_light_on
-
-        val_suspend = self.get_server_update_key_value(message, HUMIDIFY_SUSPEND_KEY)
-        if isinstance(val_suspend, bool):
-            self._suspend = val_suspend
-
-        val_horizontal_angle = self.get_server_update_key_value(message, HORIZONTAL_ANGLE_ADJ_KEY)
-        if isinstance(val_horizontal_angle, int):
-            self._horizontal_angle = val_horizontal_angle
-
         val_horizontal_angle_range = self.get_server_update_key_value(message, HORIZONTAL_OSCILLATION_ANGLE_KEY)
-        if isinstance(val_horizontal_angle_range, str):
+        if _is_str(val_horizontal_angle_range):
             self._horizontal_angle_range = self._parse_angle_range(val_horizontal_angle_range)

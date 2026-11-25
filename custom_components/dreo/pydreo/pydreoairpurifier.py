@@ -4,10 +4,18 @@ import logging
 from typing import TYPE_CHECKING, Dict
 
 from .constant import LIFETIME_KEY, PURIFYON_KEY, RGBON_KEY, RGB_BRI, RGB_MODE, RGBEFFECTID_KEY
+from .pydreobasedevice import _is_bool, _is_int, _is_int_not_bool
 from .pydreofanbase import PyDreoFanBase
 from .models import DreoDeviceDetails
 
 _LOGGER = logging.getLogger(__name__)
+
+# Websocket keys copied unchanged to an attribute when the value passes the check (see handle_server_update).
+_SERVER_UPDATE_FIELDS = ((PURIFYON_KEY, "_purify_on", _is_bool),)
+# Only applied when the device definition has filter_life_percent.
+_FILTER_LIFE_FIELDS = ((LIFETIME_KEY, "_filter_life", _is_int),)
+# Only applied when the device definition supports_rgbic_mode_light.
+_RGBIC_FIELDS = ((RGBON_KEY, "_rgbon", _is_bool), (RGB_BRI, "_rgbbri", _is_int_not_bool))
 
 if TYPE_CHECKING:
     from pydreo import PyDreo
@@ -207,20 +215,14 @@ class PyDreoAirPurifier(PyDreoFanBase):
     def set_rgbic_effect_catalog(self, catalog: dict) -> None:
         """Cache selectable basic/scene effects and resolve WebSocket IDs by entry id."""
         effects = [
-            item for item in (catalog.get("basicEffects") or [])
-            if isinstance(item, dict)
-            and item.get("effectType") == 0
-            and item.get("name")
-            and item.get("id")
-            and item.get("referencedId")
+            item
+            for item in (catalog.get("basicEffects") or [])
+            if isinstance(item, dict) and item.get("effectType") == 0 and item.get("name") and item.get("id") and item.get("referencedId")
         ]
         scene_effects = [
-            item for item in (catalog.get("sceneEffects") or [])
-            if isinstance(item, dict)
-            and item.get("effectType") == 3
-            and item.get("name")
-            and item.get("id")
-            and item.get("referencedId")
+            item
+            for item in (catalog.get("sceneEffects") or [])
+            if isinstance(item, dict) and item.get("effectType") == 3 and item.get("name") and item.get("id") and item.get("referencedId")
         ]
         scene_effects.sort(
             key=lambda item: (
@@ -235,11 +237,7 @@ class PyDreoAirPurifier(PyDreoFanBase):
         # basicEffects and sceneEffects. `referencedId` is the REST sub-effect
         # resource and is deliberately not used as a lookup key. remoteEffects
         # have a separate schema and are not exposed for this purifier.
-        self._rgbic_effect_id_to_name = {
-            str(item["id"]): item["name"]
-            for item in [*effects, *scene_effects]
-            if item.get("id") is not None
-        }
+        self._rgbic_effect_id_to_name = {str(item["id"]): item["name"] for item in [*effects, *scene_effects] if item.get("id") is not None}
         self._rgbic_effect_catalog_loaded = True
         self._resolve_rgbic_effect_id()
 
@@ -296,11 +294,7 @@ class PyDreoAirPurifier(PyDreoFanBase):
         """Apply a basic or scene effect after the observed WebSocket mode transition."""
         is_basic = effect_name in self._rgbic_effect_names
         is_scene = effect_name in self._rgbic_scene_effect_names
-        if (
-            not self._device_definition.supports_rgbic_mode_light
-            or self._rgbmode is None
-            or not (is_basic or is_scene)
-        ):
+        if not self._device_definition.supports_rgbic_mode_light or self._rgbmode is None or not (is_basic or is_scene):
             return False
 
         self._rgbic_effect_pending = True
@@ -347,41 +341,37 @@ class PyDreoAirPurifier(PyDreoFanBase):
         _LOGGER.debug("handle_server_update: handle_server_update")
         super().handle_server_update(message)
         if self._device_definition.filter_life_percent:
-            val_filter_life = self.get_server_update_key_value(message, LIFETIME_KEY)
-            if isinstance(val_filter_life, int):
-                self._filter_life = val_filter_life
-
-        val_purify_on = self.get_server_update_key_value(message, PURIFYON_KEY)
-        if isinstance(val_purify_on, bool):
-            self._purify_on = val_purify_on
-
+            self._apply_server_fields(message, _FILTER_LIFE_FIELDS)
+        self._apply_server_fields(message, _SERVER_UPDATE_FIELDS)
         if self._device_definition.supports_rgbic_mode_light:
-            val_rgbon = self.get_server_update_key_value(message, RGBON_KEY)
-            if isinstance(val_rgbon, bool):
-                self._rgbon = val_rgbon
-            val_rgbbri = self.get_server_update_key_value(message, RGB_BRI)
-            if isinstance(val_rgbbri, int) and not isinstance(val_rgbbri, bool):
-                self._rgbbri = val_rgbbri
-            val_rgbmode = self.get_server_update_key_value(message, RGB_MODE)
-            if isinstance(val_rgbmode, int) and not isinstance(val_rgbmode, bool):
-                previous_mode = self._rgbmode
-                self._rgbmode = val_rgbmode
-                if val_rgbmode == 1 or (previous_mode != val_rgbmode and not self._rgbic_effect_pending):
-                    self._rgbic_effect_name = None
-            val_effect_id = self.get_server_update_key_value(message, RGBEFFECTID_KEY)
-            if isinstance(val_effect_id, (str, int)) and not isinstance(val_effect_id, bool):
-                val_effect_id = str(val_effect_id)
-                previous_effect_id = self._rgbeffectid
-                self._rgbeffectid = val_effect_id
-                if val_effect_id != previous_effect_id:
-                    # The catalog `id` is the verified WebSocket identifier.
-                    # Resolve immediately when cached; otherwise fetch once.
-                    if self._rgbic_effect_catalog_loaded:
-                        self._resolve_rgbic_effect_id()
-                    else:
-                        self._rgbic_effect_name = None
-                        self._schedule_rgbic_catalog_refresh()
-                    self._rgbic_effect_pending = False
+            self._apply_server_fields(message, _RGBIC_FIELDS)
+            self._apply_server_rgb_mode(message)
+            self._apply_server_effect_id(message)
+
+    def _apply_server_rgb_mode(self, message) -> None:
+        val_rgbmode = self.get_server_update_key_value(message, RGB_MODE)
+        if _is_int_not_bool(val_rgbmode):
+            previous_mode = self._rgbmode
+            self._rgbmode = val_rgbmode
+            if val_rgbmode == 1 or (previous_mode != val_rgbmode and not self._rgbic_effect_pending):
+                self._rgbic_effect_name = None
+
+    def _apply_server_effect_id(self, message) -> None:
+        val_effect_id = self.get_server_update_key_value(message, RGBEFFECTID_KEY)
+        if not (isinstance(val_effect_id, (str, int)) and not isinstance(val_effect_id, bool)):
+            return
+        val_effect_id = str(val_effect_id)
+        previous_effect_id = self._rgbeffectid
+        self._rgbeffectid = val_effect_id
+        if val_effect_id != previous_effect_id:
+            # The catalog `id` is the verified WebSocket identifier.
+            # Resolve immediately when cached; otherwise fetch once.
+            if self._rgbic_effect_catalog_loaded:
+                self._resolve_rgbic_effect_id()
+            else:
+                self._rgbic_effect_name = None
+                self._schedule_rgbic_catalog_refresh()
+            self._rgbic_effect_pending = False
 
     def _send_command(self, command_key: str, value) -> None:
         """Override to remap the 'auto' mode command for models that reject the plain "auto" string.

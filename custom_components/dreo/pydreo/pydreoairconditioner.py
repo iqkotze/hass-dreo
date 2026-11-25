@@ -30,7 +30,7 @@ from .constant import (
     DreoACFanMode,
 )
 
-from .pydreobasedevice import PyDreoBaseDevice
+from .pydreobasedevice import PyDreoBaseDevice, _is_bool, _is_int, _is_str
 from .models import DreoACDeviceDetails, DreoDeviceDetails
 
 AC_OSC_ON = 2
@@ -57,6 +57,23 @@ CELSIUS_TO_FAHRENHEIT_MAP = {
 }
 
 _LOGGER = logging.getLogger(__name__)
+
+# Websocket keys copied unchanged to an attribute when the value passes the check (see handle_server_update).
+_SERVER_UPDATE_FIELDS = (
+    (TEMPERATURE_KEY, "_temperature", _is_int),
+    (HUMIDITY_KEY, "_humidity", _is_int),
+    (TARGET_HUMIDITY_KEY, "_target_humidity", _is_int),
+    (OSCMODE_KEY, "_osc_mode", _is_int),
+    (MUTEON_KEY, "_mute_on", _is_bool),
+    (DEVON_KEY, "_dev_on", _is_bool),
+    (COOLDOWN_KEY, "_cooldown", _is_int),
+    (PTCON_KEY, "_ptc_on", _is_bool),
+    (CTLSTATUS_KEY, "_ctlstatus", _is_str),
+    (CHILDLOCKON_KEY, "_childlockon", _is_bool),
+    (TEMPOFFSET_KEY, "_tempoffset", _is_int),
+    (FIXEDCONF_KEY, "_fixed_conf", _is_str),
+    (WORKTIME_KEY, "work_time", _is_int),
+)
 
 if TYPE_CHECKING:
     from pydreo import PyDreo
@@ -398,86 +415,42 @@ class PyDreoAC(PyDreoBaseDevice):
         """Process a websocket update"""
         _LOGGER.debug("handle_server_update: handle_server_update(%s): %s", self.name, message)
 
+        self._apply_server_fields(message, _SERVER_UPDATE_FIELDS)
+        self._apply_server_logged_fields(message)
+        self._apply_server_light_on(message)
+        self._apply_server_temp_target_reached(message)
+
+    def _apply_server_logged_fields(self, message) -> None:
         val_poweron = self.get_server_update_key_value(message, POWERON_KEY)
-        if isinstance(val_poweron, bool):
+        if _is_bool(val_poweron):
             self._is_on = val_poweron  # Ensure poweron state is updated
             _LOGGER.debug("handle_server_update: poweron is %s", self._is_on)
 
-        val_temperature = self.get_server_update_key_value(message, TEMPERATURE_KEY)
-        if isinstance(val_temperature, int):
-            self._temperature = val_temperature
-
         val_target_temperature = self.get_server_update_key_value(message, TARGET_TEMPERATURE_KEY)
-        if isinstance(val_target_temperature, int):
+        if _is_int(val_target_temperature):
             _LOGGER.debug("handle_server_update: %s - target_temperature: %s --> %s", self, self._target_temperature, val_target_temperature)
             self._target_temperature = val_target_temperature
-
-        val_humidity = self.get_server_update_key_value(message, HUMIDITY_KEY)
-        if isinstance(val_humidity, int):
-            self._humidity = val_humidity
-
-        val_target_humidity = self.get_server_update_key_value(message, TARGET_HUMIDITY_KEY)
-        if isinstance(val_target_humidity, int):
-            self._target_humidity = val_target_humidity
 
         # Reported mode can be an empty string if the AC is off. Deal with that by
         # explicitly setting that to off.
         val_mode = self.get_server_update_key_value(message, MODE_KEY)
-        if isinstance(val_mode, int):
+        if _is_int(val_mode):
             _LOGGER.debug("handle_server_update: %s - mode: %s --> %s", self, self._mode, val_mode)
             self._mode = val_mode
 
         val_fan_mode = self.get_server_update_key_value(message, WINDLEVEL_KEY)
-        if isinstance(val_fan_mode, int):
+        if _is_int(val_fan_mode):
             _LOGGER.debug("handle_server_update: %s - fan_mode: %s --> %s", self, self._fan_mode, val_fan_mode)
             self._fan_mode = val_fan_mode
 
-        val_osc_mode = self.get_server_update_key_value(message, OSCMODE_KEY)
-        if isinstance(val_osc_mode, int):
-            self._osc_mode = val_osc_mode
-
-        val_muteon = self.get_server_update_key_value(message, MUTEON_KEY)
-        if isinstance(val_muteon, bool):
-            self._mute_on = val_muteon
-
-        val_devon = self.get_server_update_key_value(message, DEVON_KEY)
-        if isinstance(val_devon, bool):
-            self._dev_on = val_devon
-
-        val_cooldown = self.get_server_update_key_value(message, COOLDOWN_KEY)
-        if isinstance(val_cooldown, int):
-            self._cooldown = val_cooldown
-
-        val_ptc_on = self.get_server_update_key_value(message, PTCON_KEY)
-        if isinstance(val_ptc_on, bool):
-            self._ptc_on = val_ptc_on
-
+    def _apply_server_light_on(self, message) -> None:
         val_lighton = self.get_server_update_key_value(message, LIGHTON_KEY)
-        if isinstance(val_lighton, bool):
+        if _is_bool(val_lighton):
             self._display_auto_off = not val_lighton
 
-        val_ctlstatus = self.get_server_update_key_value(message, CTLSTATUS_KEY)
-        if isinstance(val_ctlstatus, str):
-            self._ctlstatus = val_ctlstatus
-
-        val_childlockon = self.get_server_update_key_value(message, CHILDLOCKON_KEY)
-        if isinstance(val_childlockon, bool):
-            self._childlockon = val_childlockon
-
-        val_tempoffset = self.get_server_update_key_value(message, TEMPOFFSET_KEY)
-        if isinstance(val_tempoffset, int):
-            self._tempoffset = val_tempoffset
-
-        val_fixed_conf = self.get_server_update_key_value(message, FIXEDCONF_KEY)
-        if isinstance(val_fixed_conf, str):
-            self._fixed_conf = val_fixed_conf
-
-        val_work_time = self.get_server_update_key_value(message, WORKTIME_KEY)
-        if isinstance(val_work_time, int):
-            self.work_time = val_work_time
-
+    def _apply_server_temp_target_reached(self, message) -> None:
         val_temp_target_reached = self.get_server_update_key_value(message, TEMP_TARGET_REACHED_KEY)
-        if isinstance(val_temp_target_reached, int):
+        if _is_int(val_temp_target_reached):
             self.temp_target_reached = "yes" if val_temp_target_reached > 0 else "no"
 
     def set_ha_temperature_unit_is_celsius(self, is_celsius: bool) -> None:

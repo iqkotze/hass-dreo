@@ -25,6 +25,23 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 
+def _is_bool(value) -> bool:
+    return isinstance(value, bool)
+
+
+def _is_int(value) -> bool:
+    """Int check as before the table refactor: bools pass too."""
+    return isinstance(value, int)
+
+
+def _is_int_not_bool(value) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _is_str(value) -> bool:
+    return isinstance(value, str)
+
+
 class UnknownProductError(Exception):
     """Exception thrown when we don't recognize a product of a device."""
 
@@ -174,6 +191,13 @@ class PyDreoBaseDevice:
 
     def handle_server_update(self, message: dict):
         """Method to process WebSocket message"""
+
+    def _apply_server_fields(self, message, fields) -> None:
+        """Assign each (key, attr, check) field from the message when the value passes its check."""
+        for key, attr, accepts in fields:
+            value = self.get_server_update_key_value(message, key)
+            if accepts(value):
+                setattr(self, attr, value)
 
     def _send_command(self, command_key: str, value):
         """Send a command to the Dreo servers via WebSocket."""

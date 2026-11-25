@@ -50,7 +50,7 @@ from .constant import (
     SWING_OFF,
 )
 
-from .pydreobasedevice import PyDreoBaseDevice
+from .pydreobasedevice import PyDreoBaseDevice, _is_bool, _is_int, _is_int_not_bool, _is_str
 from .models import DreoHeaterDeviceDetails, HEAT_RANGE, ECOLEVEL_RANGE, TEMPERATURE_OFFSET_RANGE, COOL_RANGE
 
 _LOGGER = logging.getLogger(__name__)
@@ -71,23 +71,6 @@ FAULT_TIP_OVER = "tip_over"
 FAULT_OTHER = "other"
 FAULT_OPTIONS = [FAULT_OK, FAULT_TIP_OVER, FAULT_OTHER]
 FAULT_CODE_MAP = {0: FAULT_OK, 64: FAULT_TIP_OVER}
-
-
-def _is_bool(value) -> bool:
-    return isinstance(value, bool)
-
-
-def _is_int(value) -> bool:
-    """Int check as before the table refactor: bools pass too."""
-    return isinstance(value, int)
-
-
-def _is_int_not_bool(value) -> bool:
-    return isinstance(value, int) and not isinstance(value, bool)
-
-
-def _is_str(value) -> bool:
-    return isinstance(value, str)
 
 
 # Websocket keys copied unchanged to an attribute when the value passes the check (see handle_server_update).
@@ -972,10 +955,7 @@ class PyDreoHeater(PyDreoBaseDevice):
 
         # Plain fields. A poweron report does NOT reset _mode to OFF: hvac_mode already returns OFF while
         # _is_on is False, and resetting it showed OFF after power-on when the ACK lacked the mode.
-        for key, attr, accepts in _SERVER_UPDATE_FIELDS:
-            value = self.get_server_update_key_value(message, key)
-            if accepts(value):
-                setattr(self, attr, value)
+        self._apply_server_fields(message, _SERVER_UPDATE_FIELDS)
 
         self._apply_server_mode(message)
         self._apply_server_parsed_values(message)
