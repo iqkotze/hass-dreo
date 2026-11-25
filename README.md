@@ -45,6 +45,10 @@ This integration is based on the engineering that Gavin Zyonse did for the HomeB
 
 > This documentation is intended to be accurate for the branch/tag it's in. If you are installing a specific version (including latest) of the integration, please change current viewing tag in GitHub to see the matching documentation.
 
+## Quality Scale
+
+The status of every [Home Assistant quality scale](https://developers.home-assistant.io/docs/core/integration-quality-scale/) rule is tracked in [quality_scale.yaml](custom_components/dreo/quality_scale.yaml). Most Bronze, Silver and Gold rules are done (config flow with reauthentication and reconfiguration, runtime data, translated errors, entity categories, diagnostics); no tier is complete yet because of open documentation rules and the embedded PyDreo library.
+
 ## Interested in Contributing?
 
 I'm always happy to have people add features via Pull Request. More info on how to capture network traces and what not can be found on: [Contributing](CONTRIBUTING.md).
