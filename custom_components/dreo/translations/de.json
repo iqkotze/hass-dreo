@@ -14,10 +14,12 @@
       }
     },
     "error": {
-      "invalid_auth": "Authentifizierung fehlgeschlagen."
+      "invalid_auth": "Authentifizierung fehlgeschlagen.",
+      "cannot_connect": "Verbindung fehlgeschlagen.",
+      "unknown": "Unerwarteter Fehler."
     },
     "abort": {
-      "single_instance_allowed": "Es ist nur eine Instanz erlaubt."
+      "already_configured": "Das Konto ist bereits konfiguriert."
     }
   },
   "options": {

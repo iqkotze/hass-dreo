@@ -14,10 +14,12 @@
       }
     },
     "error": {
-      "invalid_auth": "Error de autenticación."
+      "invalid_auth": "Error de autenticación.",
+      "cannot_connect": "Error al conectar.",
+      "unknown": "Error inesperado."
     },
     "abort": {
-      "single_instance_allowed": "Solo se permite una instancia."
+      "already_configured": "La cuenta ya está configurada."
     }
   },
   "options": {

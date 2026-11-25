@@ -22,6 +22,11 @@ REGION_OPTIONS = [
 OPTIONS_SCHEMA = vol.Schema({vol.Required(CONF_AUTO_RECONNECT): bool})
 
 
+def normalize_username(username: str) -> str:
+    """Return the unique ID for an account username."""
+    return username.strip().lower()
+
+
 class OptionsFlowHandler(OptionsFlow):
     """Handles options flow for the component.
 
@@ -77,9 +82,6 @@ class DreoFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input=None):
         """Handle a flow start."""
-        if self._async_current_entries():
-            return self.async_abort(reason="single_instance_allowed")
-
         if not user_input:
             return self._show_form()
 
@@ -88,10 +90,17 @@ class DreoFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         region = user_input.get(CONF_REGION, CONF_REGION_AUTO)
         normalized_region = None if region == CONF_REGION_AUTO else region
 
+        await self.async_set_unique_id(normalize_username(self._username))
+        self._abort_if_unique_id_configured()
+
         pydreo_manager = PyDreo(self._username, self._password, region=normalized_region)
-        login = await self.hass.async_add_executor_job(pydreo_manager.login)
+        try:
+            login = await self.hass.async_add_executor_job(pydreo_manager.login)
+        except Exception:  # pylint: disable=broad-except
+            _LOGGER.exception("async_step_user: Unexpected error during login")
+            return self._show_form(errors={"base": "unknown"})
         if not login:
-            return self._show_form(errors={"base": "invalid_auth"})
+            return self._show_form(errors={"base": pydreo_manager.last_login_error or "unknown"})
 
         return self.async_create_entry(
             title=self._username,

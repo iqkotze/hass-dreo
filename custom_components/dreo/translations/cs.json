@@ -14,10 +14,12 @@
       }
     },
     "error": {
-      "invalid_auth": "Ověření selhalo."
+      "invalid_auth": "Ověření selhalo.",
+      "cannot_connect": "Připojení se nezdařilo.",
+      "unknown": "Neočekávaná chyba."
     },
     "abort": {
-      "single_instance_allowed": "Povolena je pouze jedna instance."
+      "already_configured": "Účet je již nakonfigurován."
     }
   },
   "options": {

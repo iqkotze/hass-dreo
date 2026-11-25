@@ -14,10 +14,12 @@
       }
     },
     "error": {
-      "invalid_auth": "Uwierzytelnianie nie powiodło się."
+      "invalid_auth": "Uwierzytelnianie nie powiodło się.",
+      "cannot_connect": "Połączenie nie powiodło się.",
+      "unknown": "Nieoczekiwany błąd."
     },
     "abort": {
-      "single_instance_allowed": "Dozwolona jest tylko jedna instancja."
+      "already_configured": "Konto jest już skonfigurowane."
     }
   },
   "options": {

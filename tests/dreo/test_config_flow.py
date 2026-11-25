@@ -60,27 +60,20 @@ class TestDreoFlowHandler:
         flow = DreoFlowHandler()
         flow._show_form = MagicMock(return_value="form_result")
         flow._async_current_entries = MagicMock(return_value=[])
+        flow.async_set_unique_id = AsyncMock()
+        flow._abort_if_unique_id_configured = MagicMock()
 
         result = asyncio.run(flow.async_step_user(user_input=None))
 
         assert result == "form_result"
         flow._show_form.assert_called_once_with()
 
-    def test_async_step_user_existing_entry(self):
-        """Test async_step_user with existing entry returns single_instance_allowed abort."""
-        flow = DreoFlowHandler()
-        flow._async_current_entries = MagicMock(return_value=[{"some": "entry"}])
-        flow.async_abort = MagicMock(return_value="abort_result")
-
-        result = asyncio.run(flow.async_step_user(user_input={}))
-
-        assert result == "abort_result"
-        flow.async_abort.assert_called_once_with(reason="single_instance_allowed")
-
     def test_async_step_user_login_success(self):
         """Test async_step_user with valid credentials creates entry with username title."""
         flow = DreoFlowHandler()
         flow._async_current_entries = MagicMock(return_value=[])
+        flow.async_set_unique_id = AsyncMock()
+        flow._abort_if_unique_id_configured = MagicMock()
         flow.async_create_entry = MagicMock(return_value="entry_result")
 
         mock_hass = MagicMock()
@@ -115,6 +108,8 @@ class TestDreoFlowHandler:
         """Test async_step_user stores and passes an explicit EU region."""
         flow = DreoFlowHandler()
         flow._async_current_entries = MagicMock(return_value=[])
+        flow.async_set_unique_id = AsyncMock()
+        flow._abort_if_unique_id_configured = MagicMock()
         flow.async_create_entry = MagicMock(return_value="entry_result")
 
         mock_hass = MagicMock()
@@ -140,6 +135,8 @@ class TestDreoFlowHandler:
         """Test async_step_user with failed login shows form with invalid_auth error."""
         flow = DreoFlowHandler()
         flow._async_current_entries = MagicMock(return_value=[])
+        flow.async_set_unique_id = AsyncMock()
+        flow._abort_if_unique_id_configured = MagicMock()
         flow._show_form = MagicMock(return_value="form_with_error")
 
         mock_hass = MagicMock()
@@ -150,6 +147,7 @@ class TestDreoFlowHandler:
 
         with patch("custom_components.dreo.config_flow.PyDreo") as mock_pydreo:
             mock_manager = MagicMock()
+            mock_manager.last_login_error = "invalid_auth"
             mock_pydreo.return_value = mock_manager
 
             result = asyncio.run(flow.async_step_user(user_input=user_input))
@@ -166,6 +164,65 @@ class TestDreoFlowHandler:
 
         # Verify error form was shown
         flow._show_form.assert_called_once_with(errors={"base": "invalid_auth"})
+
+    def _run_failing_login(self, login_result=False, last_error=None, side_effect=None):
+        flow = DreoFlowHandler()
+        flow.async_set_unique_id = AsyncMock()
+        flow._abort_if_unique_id_configured = MagicMock()
+        flow._show_form = MagicMock(return_value="form_with_error")
+        flow.hass = MagicMock()
+        if side_effect:
+            flow.hass.async_add_executor_job = AsyncMock(side_effect=side_effect)
+        else:
+            flow.hass.async_add_executor_job = AsyncMock(return_value=login_result)
+        with patch("custom_components.dreo.config_flow.PyDreo") as mock_pydreo:
+            mock_pydreo.return_value.last_login_error = last_error
+            asyncio.run(flow.async_step_user(user_input={"username": "a@b.c", "password": "x"}))
+        return flow
+
+    def test_async_step_user_cannot_connect(self):
+        """#4 K2: no response from the API shows cannot_connect."""
+        flow = self._run_failing_login(last_error="cannot_connect")
+        flow._show_form.assert_called_once_with(errors={"base": "cannot_connect"})
+
+    def test_async_step_user_unknown_without_error_code(self):
+        """#4 K2: failed login without error code falls back to unknown."""
+        flow = self._run_failing_login(last_error=None)
+        flow._show_form.assert_called_once_with(errors={"base": "unknown"})
+
+    def test_async_step_user_unexpected_exception(self, caplog):
+        """#4 K2: exception in login is logged and shows unknown."""
+        flow = self._run_failing_login(side_effect=RuntimeError("boom"))
+        flow._show_form.assert_called_once_with(errors={"base": "unknown"})
+        assert "Unexpected error during login" in caplog.text
+
+    def test_async_step_user_sets_normalized_unique_id(self):
+        """#3 K3/K6: unique ID is the stripped, lowercased username and is set before login."""
+        flow = DreoFlowHandler()
+        flow.async_set_unique_id = AsyncMock()
+        flow._abort_if_unique_id_configured = MagicMock()
+        flow.async_create_entry = MagicMock(return_value="entry_result")
+        flow.hass = MagicMock()
+        flow.hass.async_add_executor_job = AsyncMock(return_value=True)
+        with patch("custom_components.dreo.config_flow.PyDreo"):
+            asyncio.run(flow.async_step_user(user_input={"username": " Test@Example.COM ", "password": "x"}))
+        flow.async_set_unique_id.assert_awaited_once_with("test@example.com")
+        flow._abort_if_unique_id_configured.assert_called_once_with()
+
+    def test_async_step_user_already_configured_aborts_before_login(self):
+        """#3 K3: same username in different case aborts with already_configured without login."""
+        from homeassistant.data_entry_flow import AbortFlow
+
+        flow = DreoFlowHandler()
+        flow.async_set_unique_id = AsyncMock()
+        flow._abort_if_unique_id_configured = MagicMock(side_effect=AbortFlow("already_configured"))
+        flow.hass = MagicMock()
+        flow.hass.async_add_executor_job = AsyncMock()
+        with pytest.raises(AbortFlow) as exc:
+            asyncio.run(flow.async_step_user(user_input={"username": "A@B.C", "password": "x"}))
+        assert exc.value.reason == "already_configured"
+        flow.async_set_unique_id.assert_awaited_once_with("a@b.c")
+        flow.hass.async_add_executor_job.assert_not_called()
 
     def test_async_get_options_flow(self):
         """Test async_get_options_flow returns OptionsFlowHandler instance."""

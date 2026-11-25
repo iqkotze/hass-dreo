@@ -14,10 +14,12 @@
       }
     },
     "error": {
-      "invalid_auth": "Неуспешно удостоверяване."
+      "invalid_auth": "Неуспешно удостоверяване.",
+      "cannot_connect": "Неуспешна връзка.",
+      "unknown": "Неочаквана грешка."
     },
     "abort": {
-      "single_instance_allowed": "Разрешена е само една инстанция."
+      "already_configured": "Акаунтът вече е конфигуриран."
     }
   },
   "options": {

@@ -133,6 +133,15 @@ def _install_ha_call_later_scheduler(
     config_entry.async_on_unload(_cancel_all_pending)
 
 
+def _backfill_unique_id(hass: HomeAssistant, config_entry: DreoConfigEntry, username: str | None) -> None:
+    """Set the unique ID of legacy entries unless another entry already uses it."""
+    if config_entry.unique_id is not None or not username:
+        return
+    unique_id = username.strip().lower()
+    if not any(e.unique_id == unique_id for e in hass.config_entries.async_entries(DOMAIN)):
+        hass.config_entries.async_update_entry(config_entry, unique_id=unique_id)
+
+
 async def async_setup_entry(hass: HomeAssistant, config_entry: DreoConfigEntry) -> bool:
     "HomeAssistant EntryPoint"
     _LOGGER.debug("async_setup_entry: Starting setup")
@@ -144,6 +153,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: DreoConfigEntry) 
     if auto_reconnect is None:
         _LOGGER.debug("async_setup_entry: auto_reconnect is None.  Default to True")
         auto_reconnect = True
+
+    _backfill_unique_id(hass, config_entry, username)
 
     region = config_entry.data.get(CONF_REGION)
     if region == "auto":

@@ -14,10 +14,12 @@
       }
     },
     "error": {
-      "invalid_auth": "Autenticazione fallita."
+      "invalid_auth": "Autenticazione fallita.",
+      "cannot_connect": "Connessione non riuscita.",
+      "unknown": "Errore imprevisto."
     },
     "abort": {
-      "single_instance_allowed": "È consentita una sola istanza."
+      "already_configured": "L'account è già configurato."
     }
   },
   "options": {

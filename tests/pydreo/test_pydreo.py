@@ -265,6 +265,28 @@ class TestPyDreoLoadDevices(TestBase):
 class TestPyDreoLogin:
     """Test login method."""
 
+    def test_last_login_error_values(self):
+        """#4 K1: last_login_error is None on success, cannot_connect without response, invalid_auth otherwise."""
+        pydreo = PyDreo("user", "pass", redact=False)
+        assert pydreo.last_login_error is None
+        with patch.object(pydreo, "call_dreo_api", return_value=(None, 500)):
+            assert pydreo.login() is False
+        assert pydreo.last_login_error == "cannot_connect"
+        with patch.object(pydreo, "call_dreo_api", return_value=({"code": 60002, "msg": "bad"}, 200)):
+            assert pydreo.login() is False
+        assert pydreo.last_login_error == "invalid_auth"
+        ok = {"code": 0, "data": {"region": pydreo.auth_region, "access_token": "tok"}}
+        with patch.object(pydreo, "call_dreo_api", return_value=(ok, 200)):
+            assert pydreo.login() is True
+        assert pydreo.last_login_error is None
+
+    def test_last_login_error_local_checks(self):
+        """#4 K1: empty username or password gives invalid_auth."""
+        for user, pw in (("", "pass"), ("user", "")):
+            pydreo = PyDreo(user, pw, redact=False)
+            assert pydreo.login() is False
+            assert pydreo.last_login_error == "invalid_auth"
+
     def test_debug_test_mode_login(self):
         """Test login in debug test mode."""
         pydreo = PyDreo("user", "pass", redact=False, debug_test_mode=True, debug_test_mode_payload={})

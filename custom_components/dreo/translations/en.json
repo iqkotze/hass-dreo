@@ -14,10 +14,12 @@
       }
     },
     "error": {
-      "invalid_auth": "Authentication failed."
+      "invalid_auth": "Authentication failed.",
+      "cannot_connect": "Failed to connect.",
+      "unknown": "Unexpected error."
     },
     "abort": {
-      "single_instance_allowed": "Only one instance is allowed."
+      "already_configured": "Account is already configured."
     }
   },
   "options": {

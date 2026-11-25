@@ -14,10 +14,12 @@
       }
     },
     "error": {
-      "invalid_auth": "Échec de l'authentification."
+      "invalid_auth": "Échec de l'authentification.",
+      "cannot_connect": "Échec de la connexion.",
+      "unknown": "Erreur inattendue."
     },
     "abort": {
-      "single_instance_allowed": "Une seule instance est autorisée."
+      "already_configured": "Le compte est déjà configuré."
     }
   },
   "options": {

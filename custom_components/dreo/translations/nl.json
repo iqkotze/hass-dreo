@@ -14,10 +14,12 @@
       }
     },
     "error": {
-      "invalid_auth": "Verificatie mislukt."
+      "invalid_auth": "Verificatie mislukt.",
+      "cannot_connect": "Verbinden mislukt.",
+      "unknown": "Onverwachte fout."
     },
     "abort": {
-      "single_instance_allowed": "Er is slechts één instantie toegestaan."
+      "already_configured": "Account is al geconfigureerd."
     }
   },
   "options": {

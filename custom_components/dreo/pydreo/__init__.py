@@ -61,6 +61,7 @@ _DEVICE_ONLINE_METHOD = "device-online"
 class DreoCommandRejectedError(Exception):
     """The Dreo server rejected a command (e.g. error 500003, "instruction validate failed")."""
 
+
 _DREO_DEVICE_TYPE_TO_CLASS = {
     DreoDeviceType.TOWER_FAN: PyDreoTowerFan,
     DreoDeviceType.AIR_CIRCULATOR: PyDreoAirCirculator,
@@ -120,6 +121,7 @@ class PyDreo:  # pylint: disable=function-redefined
         if redact:
             self.redact = redact
         self.raw_response = None
+        self.last_login_error: str | None = None
         self.username: str = username
         self.password: str = password
         self.token = token
@@ -359,19 +361,23 @@ class PyDreo:  # pylint: disable=function-redefined
             self.enabled = True
             return True
 
+        self.last_login_error = None
         user_check = isinstance(self.username, str) and len(self.username) > 0
         pass_check = isinstance(self.password, str) and len(self.password) > 0
         if user_check is False:
             _LOGGER.error("login: Username invalid")
+            self.last_login_error = "invalid_auth"
             return False
         if pass_check is False:
             _LOGGER.error("login: Password invalid")
+            self.last_login_error = "invalid_auth"
             return False
         response, status_code = self.call_dreo_api(DREO_API_LOGIN)
 
         if response is None:
             status_msg = f"status: {status_code}" if status_code else "no status code"
             _LOGGER.error("login: No response from Dreo API (%s). Check network connectivity and API endpoint.", status_msg)
+            self.last_login_error = "cannot_connect"
             return False
 
         if Helpers.code_check(response) and DATA_KEY in response:
@@ -395,6 +401,7 @@ class PyDreo:  # pylint: disable=function-redefined
             _LOGGER.error("login: Authentication failed - API returned code: %s, message: %s", error_code, error_msg)
         else:
             _LOGGER.error("login: Error logging in with username and password - invalid response format")
+        self.last_login_error = "invalid_auth"
         return False
 
     def get_device_setting(self, device: PyDreoBaseDevice, setting: DreoDeviceSetting) -> bool | int:
@@ -482,15 +489,10 @@ class PyDreo:  # pylint: disable=function-redefined
         layouts = json.loads(json.dumps(effect.get("layouts") or []))
         if color is not None:
             if effect_name != "Constant" or not layouts:
-                _LOGGER.warning(
-                    "set_rgbic_effect: color override is only supported by Constant"
-                )
+                _LOGGER.warning("set_rgbic_effect: color override is only supported by Constant")
                 return None
 
-            whole_color_layouts = [
-                layout for layout in layouts
-                if isinstance(layout, dict) and "wholeColorList" in layout
-            ]
+            whole_color_layouts = [layout for layout in layouts if isinstance(layout, dict) and "wholeColorList" in layout]
             if not whole_color_layouts:
                 _LOGGER.warning(
                     "set_rgbic_effect: Constant effect has no wholeColorList layout for %s",
@@ -522,10 +524,12 @@ class PyDreo:  # pylint: disable=function-redefined
             # Preserve the selected catalog-record ID in the outer edit entry.
             "id": effect.get("id"),
             "name": effect.get("name"),
-            "subEffects": [{
-                "effectId": referenced_id,
-                "layouts": layouts,
-            }],
+            "subEffects": [
+                {
+                    "effectId": referenced_id,
+                    "layouts": layouts,
+                }
+            ],
         }
         if effect.get("subRemoteEffect") is not None:
             entry["subRemoteEffect"] = effect.get("subRemoteEffect")
@@ -561,9 +565,7 @@ class PyDreo:  # pylint: disable=function-redefined
             _LOGGER.warning("set_rgbic_effect: effect %s not found for %s", effect_name, device.name)
             return False
 
-        entry = self._prepare_rgbic_edit_batch_entry(
-            device, effect, effect_name=effect_name, color=color
-        )
+        entry = self._prepare_rgbic_edit_batch_entry(device, effect, effect_name=effect_name, color=color)
         if entry is None:
             return False
         return self._post_rgbic_edit_batch(device, [entry])
@@ -575,11 +577,7 @@ class PyDreo:  # pylint: disable=function-redefined
             return False
 
         effect = next(
-            (
-                item
-                for item in (catalog.get("sceneEffects") or [])
-                if item.get("name") == effect_name and item.get("effectType") == 3
-            ),
+            (item for item in (catalog.get("sceneEffects") or []) if item.get("name") == effect_name and item.get("effectType") == 3),
             None,
         )
         if effect is None:

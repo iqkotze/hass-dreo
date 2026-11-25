@@ -13,6 +13,26 @@ class TestInit:
         """Test that DEBUG_TEST_MODE is set to False."""
         assert DEBUG_TEST_MODE is False, "DEBUG_TEST_MODE should be False to merge changes."
 
+    def test_setup_backfills_missing_unique_id(self):
+        """#3 K5: entry without unique ID gets the normalized username; skipped if another entry has it."""
+        from custom_components.dreo import async_setup_entry
+
+        for other_ids, expect_update in (([], True), (["test@example.com"], False)):
+            mock_hass = MagicMock()
+            mock_hass.data = {}
+            mock_hass.async_add_executor_job = AsyncMock(return_value=False)
+            mock_hass.config_entries.async_entries.return_value = [MagicMock(unique_id=u) for u in other_ids]
+            mock_entry = MagicMock()
+            mock_entry.unique_id = None
+            mock_entry.data = {"username": " Test@Example.com ", "password": "password"}
+            mock_entry.options = {}
+            with pytest.raises(ConfigEntryNotReady):
+                asyncio.run(async_setup_entry(mock_hass, mock_entry))
+            if expect_update:
+                mock_hass.config_entries.async_update_entry.assert_called_once_with(mock_entry, unique_id="test@example.com")
+            else:
+                mock_hass.config_entries.async_update_entry.assert_not_called()
+
     def test_login_failure_raises_config_entry_not_ready(self):
         """Test that a login failure raises ConfigEntryNotReady instead of returning False."""
         from custom_components.dreo import async_setup_entry
