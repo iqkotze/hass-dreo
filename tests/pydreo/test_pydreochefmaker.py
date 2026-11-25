@@ -275,7 +275,9 @@ class TestPyDreoChefMaker(TestBase):
     def test_handle_server_update_combined(self):
         """Test handle_server_update processes multiple keys."""
         cm = self._load_chefmaker()
-        cm.handle_server_update({REPORTED_KEY: {POWERON_KEY: True, LIGHT_KEY: 1, CM_MODE_KEY: "cooking", COOK_TIME_ESTIMATED_KEY: 1000, COOK_TIME_BEGIN_KEY: 1000}})
+        cm.handle_server_update(
+            {REPORTED_KEY: {POWERON_KEY: True, LIGHT_KEY: 1, CM_MODE_KEY: "cooking", COOK_TIME_ESTIMATED_KEY: 1000, COOK_TIME_BEGIN_KEY: 1000}}
+        )
         assert cm.is_on is True
         assert cm.ledpotkepton is True
         assert cm.mode == "cooking"

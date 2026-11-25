@@ -332,9 +332,7 @@ class TestPyDreoCeilingFan(TestBase):
 
         assert fan.is_feature_supported("rgbic_effect_api") is True
         assert fan.atm_brightness_range == (1, 100)
-        assert fan.rgbic_effect_names == [
-            "Constant", "Breath", "Cycle", "Marquee", "Flow", "Flash", "Starlight", "Chase"
-        ]
+        assert fan.rgbic_effect_names == ["Constant", "Breath", "Cycle", "Marquee", "Flow", "Flash", "Starlight", "Chase"]
 
         # Capability is deliberately latched: a later partial REST payload may
         # omit rgbeffectid, but that must not make the HA entity lose support.
@@ -350,9 +348,10 @@ class TestPyDreoCeilingFan(TestBase):
         fan: PyDreoCeilingFan = self.pydreo_manager.devices[0]
         scheduled = self.install_manual_scheduler()
 
-        with patch.object(fan, "_send_command_batch") as mock_send, patch.object(
-            self.pydreo_manager, "set_rgbic_effect", return_value=True
-        ) as mock_effect:
+        with (
+            patch.object(fan, "_send_command_batch") as mock_send,
+            patch.object(self.pydreo_manager, "set_rgbic_effect", return_value=True) as mock_effect,
+        ):
             fan.set_rgbic_effect("Constant", (128, 0, 255))
 
             mock_send.assert_called_once_with({ATMON_KEY: True})
@@ -373,9 +372,7 @@ class TestPyDreoCeilingFan(TestBase):
         self.pydreo_manager.load_devices()
         fan: PyDreoCeilingFan = self.pydreo_manager.devices[0]
         scheduled = self.install_manual_scheduler()
-        with patch.object(fan, "_send_command_batch"), patch.object(
-            self.pydreo_manager, "set_rgbic_effect", return_value=False
-        ):
+        with patch.object(fan, "_send_command_batch"), patch.object(self.pydreo_manager, "set_rgbic_effect", return_value=False):
             fan.set_rgbic_effect("Constant", (128, 0, 255))
             self.fire_last_scheduled(scheduled)
         assert fan.rgbic_color is None
@@ -387,9 +384,7 @@ class TestPyDreoCeilingFan(TestBase):
         self.pydreo_manager.load_devices()
         fan: PyDreoCeilingFan = self.pydreo_manager.devices[0]
         scheduled = self.install_manual_scheduler()
-        with patch.object(fan, "_send_command_batch"), patch.object(
-            self.pydreo_manager, "set_rgbic_effect", return_value=True
-        ) as mock_effect:
+        with patch.object(fan, "_send_command_batch"), patch.object(self.pydreo_manager, "set_rgbic_effect", return_value=True) as mock_effect:
             fan.set_rgbic_effect("Breath")
             fan.set_rgbic_effect("Chase")
             assert len(scheduled) == 2
@@ -418,9 +413,7 @@ class TestPyDreoCeilingFan(TestBase):
         fan: PyDreoCeilingFan = self.pydreo_manager.devices[0]
 
         catalog = get_response_from_file("get_rgb_effect_catalog_HCF002S_CFRGB.json")
-        expected = get_response_from_file(
-            "post_rgb_effect_edit_batch_scene_wave_catalog_derived.json"
-        )
+        expected = get_response_from_file("post_rgb_effect_edit_batch_scene_wave_catalog_derived.json")
 
         with patch("custom_components.dreo.pydreo.Helpers.call_api") as mock_call_api:
             mock_call_api.side_effect = [
@@ -443,21 +436,14 @@ class TestPyDreoCeilingFan(TestBase):
         fan: PyDreoCeilingFan = self.pydreo_manager.devices[0]
 
         catalog = get_response_from_file("get_rgb_effect_catalog_HCF002S_CFRGB.json")
-        captured = get_response_from_file(
-            "post_rgb_effect_edit_batch_HCF002S_constant.json"
-        )
+        captured = get_response_from_file("post_rgb_effect_edit_batch_HCF002S_constant.json")
 
         with patch("custom_components.dreo.pydreo.Helpers.call_api") as mock_call_api:
             mock_call_api.side_effect = [
                 (catalog, 200),
                 ({"code": 0, "data": {}}, 200),
             ]
-            assert (
-                self.pydreo_manager.set_rgbic_effect(
-                    fan, "Constant", "#b941ff"
-                )
-                is True
-            )
+            assert self.pydreo_manager.set_rgbic_effect(fan, "Constant", "#b941ff") is True
 
         assert mock_call_api.call_count == 2
 
@@ -478,20 +464,12 @@ class TestPyDreoCeilingFan(TestBase):
         # device-specific identifiers before comparing the request structure.
         captured[0]["devicesn"] = payload[0]["devicesn"]
         captured[0]["id"] = payload[0]["id"]
-        captured[0]["subEffects"][0]["effectId"] = payload[0]["subEffects"][0][
-            "effectId"
-        ]
+        captured[0]["subEffects"][0]["effectId"] = payload[0]["subEffects"][0]["effectId"]
 
         # The Android app preserves lowercase hex while hass-dreo normalizes it
         # to uppercase. Both represent the same RGB value.
-        captured_color_layout = next(
-            layout
-            for layout in captured[0]["subEffects"][0]["layouts"]
-            if layout.get("effectParamKey") == "colors"
-        )
-        captured_color_layout["wholeColorList"] = [
-            color.upper() for color in captured_color_layout["wholeColorList"]
-        ]
+        captured_color_layout = next(layout for layout in captured[0]["subEffects"][0]["layouts"] if layout.get("effectParamKey") == "colors")
+        captured_color_layout["wholeColorList"] = [color.upper() for color in captured_color_layout["wholeColorList"]]
 
         assert payload == captured
 
@@ -500,13 +478,24 @@ class TestPyDreoCeilingFan(TestBase):
         self.get_devices_file_name = "get_devices_HCF002S_CFRGB.json"
         self.pydreo_manager.load_devices()
         fan: PyDreoCeilingFan = self.pydreo_manager.devices[0]
-        catalog = {"code": 0, "data": {"basicEffects": [{
-            "id": "1", "name": "Breath", "effectType": 0,
-            "referencedId": "2", "layouts": [],
-        }]}}
-        with patch("custom_components.dreo.pydreo.Helpers.call_api") as mock_call_api, patch.object(
-            self.pydreo_manager, "_re_login", return_value=True
-        ) as mock_relogin:
+        catalog = {
+            "code": 0,
+            "data": {
+                "basicEffects": [
+                    {
+                        "id": "1",
+                        "name": "Breath",
+                        "effectType": 0,
+                        "referencedId": "2",
+                        "layouts": [],
+                    }
+                ]
+            },
+        }
+        with (
+            patch("custom_components.dreo.pydreo.Helpers.call_api") as mock_call_api,
+            patch.object(self.pydreo_manager, "_re_login", return_value=True) as mock_relogin,
+        ):
             mock_call_api.side_effect = [
                 ({"code": 401}, 401),
                 (catalog, 200),

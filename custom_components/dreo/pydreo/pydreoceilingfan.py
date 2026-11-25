@@ -309,11 +309,7 @@ class PyDreoCeilingFan(PyDreoFanBase):
         extinguishing the others. Batch keys are the caller's intent and are
         never overridden - a co-arriving ``atmon: True`` survives the wake.
         """
-        return {
-            load_key: False
-            for load_key, attr in self._LOAD_ATTRS.items()
-            if load_key not in params and getattr(self, attr) is not None
-        }
+        return {load_key: False for load_key, attr in self._LOAD_ATTRS.items() if load_key not in params and getattr(self, attr) is not None}
 
     def _any_load_retained_on(self) -> bool:
         """True if any supported load is retained on; unknown (None) counts as off."""

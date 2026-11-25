@@ -1765,6 +1765,7 @@ class TestPyDreoAirCirculator(TestBase):
 
         errors: list[BaseException] = []
         with patch(PATCH_SEND_COMMAND) as mock_send_command:
+
             def set_vertical():
                 try:
                     fan.vertical_angle = 30
@@ -1946,15 +1947,11 @@ class TestPyDreoAirCirculator(TestBase):
             assert fan.fixed_conf_settle_pending is False
 
             # The early reply must not move state or clear in-flight.
-            fan.handle_server_update(
-                {"method": "control-reply", REPORTED_KEY: {FIXEDCONF_KEY: "30,0"}}
-            )
+            fan.handle_server_update({"method": "control-reply", REPORTED_KEY: {FIXEDCONF_KEY: "30,0"}})
             assert fan.vertical_angle == 0
 
             # The later device control report is authoritative.
-            fan.handle_server_update(
-                {"method": "control-report", REPORTED_KEY: {FIXEDCONF_KEY: "30,0"}}
-            )
+            fan.handle_server_update({"method": "control-report", REPORTED_KEY: {FIXEDCONF_KEY: "30,0"}})
             assert fan.vertical_angle == 30
             assert fan.fixed_conf_commanded is None
 

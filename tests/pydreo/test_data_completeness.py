@@ -299,9 +299,7 @@ class TestDeviceDataCompleteness:
                 sn = device.get("sn", "")
                 expected = API_RESPONSES_DIR / f"get_device_setting_{sn}_{setting_key}.json"
                 if not expected.exists():
-                    missing_setting_files.append(
-                        {"devices_file": device_file.name, "sn": sn, "expected_setting_file": expected.name}
-                    )
+                    missing_setting_files.append({"devices_file": device_file.name, "sn": sn, "expected_setting_file": expected.name})
 
         if missing_setting_files:
             error_message = "Missing temperature-calibration setting files:\n"
@@ -310,4 +308,3 @@ class TestDeviceDataCompleteness:
                 error_message += f"needs {missing['expected_setting_file']}\n"
 
             pytest.fail(error_message)
-

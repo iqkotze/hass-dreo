@@ -269,8 +269,6 @@ class TestPyDreoHumidifier(TestBase):
         humidifier.handle_server_update({REPORTED_KEY: {MODE_KEY: 2}})
         assert humidifier.mode == "sleep"
 
-
-
     def test_HHM003S_websocket_updates(self):  # pylint: disable=invalid-name
         """Test that humidity values are updated from websocket messages for HHM003S."""
         self.get_devices_file_name = "get_devices_HHM003S.json"
@@ -647,7 +645,7 @@ class TestPyDreoHumidifier(TestBase):
         for device in self.pydreo_manager.devices:
             humidifier: PyDreoHumidifier = device
             self._exercise_all_settable_properties(humidifier)
-            
+
     # --- filtertime, filteron, suspend properties ---
 
     def test_filtertime_property(self):

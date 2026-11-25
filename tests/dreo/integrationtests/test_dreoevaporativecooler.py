@@ -51,10 +51,12 @@ class TestDreoEvaporativeCoolers(IntegrationTestBase):
                 assert len(pydreo_ec.preset_modes) > 0
 
             numbers = number.get_entries([pydreo_ec])
-            self.verify_expected_entities(numbers, ["Ambient Light Threshold Low", "Ambient Light Threshold High", "Target Humidity", "Timer Off", "Timer On"])
+            self.verify_expected_entities(
+                numbers, ["Ambient Light Threshold Low", "Ambient Light Threshold High", "Target Humidity", "Timer Off", "Timer On"]
+            )
 
             sensors = sensor.get_entries([pydreo_ec])
-            self.verify_expected_entities(sensors, ["Temperature", 'Target Humidity Reached', "Humidity", "Use since cleaning"])
+            self.verify_expected_entities(sensors, ["Temperature", "Target Humidity Reached", "Humidity", "Use since cleaning"])
 
             # HEC002S has an ambient light ring (rgbon/rgbmode/rgbcolor keys).
             lights = light.get_entries([pydreo_ec])
@@ -107,7 +109,7 @@ class TestDreoEvaporativeCoolers(IntegrationTestBase):
             )
 
             sensors = sensor.get_entries([pydreo_ec])
-            self.verify_expected_entities(sensors, ['Humidity', 'Target Humidity Reached', 'Temperature', 'Use since cleaning'])
+            self.verify_expected_entities(sensors, ["Humidity", "Target Humidity Reached", "Temperature", "Use since cleaning"])
 
             switches = switch.get_entries([pydreo_ec])
             self.verify_expected_entities(switches, ["Child Lock", "Display Light", "Humidify", "Misting", "Panel Sound"])

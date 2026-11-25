@@ -397,41 +397,46 @@ class TestPyDreoAirPurifier(TestBase):
             "code": 0,
             "msg": "OK",
             "data": {
-                "basicEffects": [{
-                    "id": "2124876509150707713",
-                    "name": "Respirar",
-                    "effectType": 0,
-                    "extendedType": 0,
-                    "referencedId": "1700000000000000002",
-                    "selected": False,
-                    "layouts": [
-                        {
-                            "colorList": ["#FF0000", "#FF8000"],
-                            "effectParamKey": "colors",
-                            "maxListSize": 8,
-                            "title": "é¢œè‰²åˆ—è¡¨",
-                            "viewType": "COLOR_LIST",
-                        },
-                        {
-                            "effectParamKey": "speedValue",
-                            "range": {"first": 1, "last": 100, "step": 1},
-                            "title": "base_speed",
-                            "value": 70.0,
-                            "valueType": "INT",
-                            "viewType": "SPEED",
-                        },
-                    ],
-                }],
+                "basicEffects": [
+                    {
+                        "id": "2124876509150707713",
+                        "name": "Respirar",
+                        "effectType": 0,
+                        "extendedType": 0,
+                        "referencedId": "1700000000000000002",
+                        "selected": False,
+                        "layouts": [
+                            {
+                                "colorList": ["#FF0000", "#FF8000"],
+                                "effectParamKey": "colors",
+                                "maxListSize": 8,
+                                "title": "é¢œè‰²åˆ—è¡¨",
+                                "viewType": "COLOR_LIST",
+                            },
+                            {
+                                "effectParamKey": "speedValue",
+                                "range": {"first": 1, "last": 100, "step": 1},
+                                "title": "base_speed",
+                                "value": 70.0,
+                                "valueType": "INT",
+                                "viewType": "SPEED",
+                            },
+                        ],
+                    }
+                ],
                 # The caller deliberately exposes only basic effects, not these categories.
                 "remoteEffects": [{"name": "remote", "effectType": 2}],
                 "sceneEffects": [{"name": "scene", "effectType": 3}],
             },
         }
         device.handle_server_update({REPORTED_KEY: {"rgbmode": 1}})
-        with patch(PATCH_SEND_COMMAND) as send, patch(
-            "custom_components.dreo.pydreo.Helpers.call_api",
-            side_effect=[(catalog, 200), ({"code": 0, "msg": "OK", "data": {}}, 200)],
-        ) as call_api:
+        with (
+            patch(PATCH_SEND_COMMAND) as send,
+            patch(
+                "custom_components.dreo.pydreo.Helpers.call_api",
+                side_effect=[(catalog, 200), ({"code": 0, "msg": "OK", "data": {}}, 200)],
+            ) as call_api,
+        ):
             device.set_rgbic_effect_catalog(catalog["data"])
             assert device.rgbic_effect_names == ["Respirar"]
             assert device.set_rgbic_effect("Respirar") is True
@@ -453,17 +458,21 @@ class TestPyDreoAirPurifier(TestBase):
         assert call_api.call_args_list[1].args[1:4] == (
             "/api/device/rgb-effect/edit/batch",
             "post",
-            [{
-                "applyToDevice": True,
-                "devicesn": device.serial_number,
-                "effectType": 0,
-                "id": "2124876509150707713",
-                "name": "Respirar",
-                "subEffects": [{
-                    "effectId": "1700000000000000002",
-                    "layouts": catalog["data"]["basicEffects"][0]["layouts"],
-                }],
-            }],
+            [
+                {
+                    "applyToDevice": True,
+                    "devicesn": device.serial_number,
+                    "effectType": 0,
+                    "id": "2124876509150707713",
+                    "name": "Respirar",
+                    "subEffects": [
+                        {
+                            "effectId": "1700000000000000002",
+                            "layouts": catalog["data"]["basicEffects"][0]["layouts"],
+                        }
+                    ],
+                }
+            ],
         )
         write_headers = call_api.call_args_list[1].args[4]
         assert write_headers == Helpers.req_headers(self.pydreo_manager)
@@ -511,10 +520,12 @@ class TestPyDreoAirPurifier(TestBase):
         assert device.rgbmode == 1
         assert device.rgbeffectid == "1701000000000000011"
 
-        device.update_state({
-            "rgbmode": {"state": 2},
-            "rgbeffectid": {"state": "1702000000000000001"},
-        })
+        device.update_state(
+            {
+                "rgbmode": {"state": 2},
+                "rgbeffectid": {"state": "1702000000000000001"},
+            }
+        )
         assert device.rgbmode == 2
         assert device.rgbeffectid == "1702000000000000001"
 
@@ -534,19 +545,24 @@ class TestPyDreoAirPurifier(TestBase):
         self.get_devices_file_name = "get_devices_HAP010S.json"
         self.pydreo_manager.load_devices()
         device = self.pydreo_manager.devices[0]
-        device.set_rgbic_effect_catalog({
-            "basicEffects": [{
-                "id": "old-id",
-                "referencedId": "old-ref",
-                "effectType": 0,
-                "name": "Previous effect",
-            }, {
-                "id": "new-id",
-                "referencedId": "referenced-id",
-                "effectType": 0,
-                "name": "Wave from current catalog",
-            }],
-        })
+        device.set_rgbic_effect_catalog(
+            {
+                "basicEffects": [
+                    {
+                        "id": "old-id",
+                        "referencedId": "old-ref",
+                        "effectType": 0,
+                        "name": "Previous effect",
+                    },
+                    {
+                        "id": "new-id",
+                        "referencedId": "referenced-id",
+                        "effectType": 0,
+                        "name": "Wave from current catalog",
+                    },
+                ],
+            }
+        )
         device.handle_server_update({REPORTED_KEY: {"rgbmode": 2, "rgbeffectid": "old-id"}})
         with patch.object(self.pydreo_manager, "get_rgbic_effect_catalog") as get_catalog:
             device.handle_server_update({REPORTED_KEY: {"rgbeffectid": "new-id"}})
@@ -560,15 +576,19 @@ class TestPyDreoAirPurifier(TestBase):
         self.get_devices_file_name = "get_devices_HAP010S.json"
         self.pydreo_manager.load_devices()
         device = self.pydreo_manager.devices[0]
-        device.set_rgbic_effect_catalog({
-            "basicEffects": [{
-                "id": "catalog-basic-id",
-                "referencedId": "1700000000000000011",
-                "effectType": 0,
-                "name": "Wrong if matched by prefix",
-                "selected": True,
-            }],
-        })
+        device.set_rgbic_effect_catalog(
+            {
+                "basicEffects": [
+                    {
+                        "id": "catalog-basic-id",
+                        "referencedId": "1700000000000000011",
+                        "effectType": 0,
+                        "name": "Wrong if matched by prefix",
+                        "selected": True,
+                    }
+                ],
+            }
+        )
         device.handle_server_update({REPORTED_KEY: {"rgbeffectid": 1701000000000000011}})
         assert device.rgbmode is None
         assert device.rgbeffectid == "1701000000000000011"
@@ -582,13 +602,15 @@ class TestPyDreoAirPurifier(TestBase):
         device = self.pydreo_manager.devices[0]
         device.handle_server_update({REPORTED_KEY: {"rgbmode": 2}})
         localized_catalog = {
-            "basicEffects": [{
-                "id": "2124876509150707714",
-                "referencedId": "1700000000000000003",
-                "effectType": 0,
-                "name": "Círculo",
-                "layouts": [],
-            }],
+            "basicEffects": [
+                {
+                    "id": "2124876509150707714",
+                    "referencedId": "1700000000000000003",
+                    "effectType": 0,
+                    "name": "Círculo",
+                    "layouts": [],
+                }
+            ],
         }
         device.set_rgbic_effect_catalog(localized_catalog)
 
@@ -602,16 +624,17 @@ class TestPyDreoAirPurifier(TestBase):
                 return {"code": 0, "data": localized_catalog}, 200
             if api == "/api/device/rgb-effect/edit/batch":
                 posted_payloads.append(payload)
-                return {"code": 0, "data": {
-                    "id": "2124876509150707714",
-                    "referencedId": "1700000000000000003",
-                    "name": "Cycle",
-                }}, 200
+                return {
+                    "code": 0,
+                    "data": {
+                        "id": "2124876509150707714",
+                        "referencedId": "1700000000000000003",
+                        "name": "Cycle",
+                    },
+                }, 200
             return None, 500
 
-        with patch(PATCH_SEND_COMMAND, side_effect=fake_send), patch(
-            "custom_components.dreo.pydreo.Helpers.call_api", side_effect=fake_call_api
-        ):
+        with patch(PATCH_SEND_COMMAND, side_effect=fake_send), patch("custom_components.dreo.pydreo.Helpers.call_api", side_effect=fake_call_api):
             assert device.set_rgbic_effect("Círculo") is True
 
         assert device.rgbic_effect_name == "Círculo"
@@ -626,14 +649,18 @@ class TestPyDreoAirPurifier(TestBase):
         self.get_devices_file_name = "get_devices_HAP010S.json"
         self.pydreo_manager.load_devices()
         device = self.pydreo_manager.devices[0]
-        device.set_rgbic_effect_catalog({
-            "remoteEffects": [{
-                "id": "remote-entry-id",
-                "referencedId": "remote-base-id",
-                "name": "Example remote name",
-                "subRemoteEffect": {"effectId": "remote-base-id", "effectName": "Example remote name"},
-            }],
-        })
+        device.set_rgbic_effect_catalog(
+            {
+                "remoteEffects": [
+                    {
+                        "id": "remote-entry-id",
+                        "referencedId": "remote-base-id",
+                        "name": "Example remote name",
+                        "subRemoteEffect": {"effectId": "remote-base-id", "effectName": "Example remote name"},
+                    }
+                ],
+            }
+        )
         device.handle_server_update({REPORTED_KEY: {"rgbeffectid": "1701000000000000011"}})
         assert device.rgbeffectid == "1701000000000000011"
         assert device.rgbic_effect_name is None
@@ -712,9 +739,12 @@ class TestPyDreoAirPurifier(TestBase):
                 return {"code": 0, "data": {}}, 200
             return None, 500
 
-        with patch(PATCH_SEND_COMMAND, side_effect=fake_send), patch(
-            "custom_components.dreo.pydreo.Helpers.call_api",
-            side_effect=fake_call_api,
+        with (
+            patch(PATCH_SEND_COMMAND, side_effect=fake_send),
+            patch(
+                "custom_components.dreo.pydreo.Helpers.call_api",
+                side_effect=fake_call_api,
+            ),
         ):
             assert device.set_rgbic_effect(scene_name) is True
 
@@ -754,9 +784,12 @@ class TestPyDreoAirPurifier(TestBase):
                 return {"code": 0, "data": {}}, 200
             return None, 500
 
-        with patch(PATCH_SEND_COMMAND, side_effect=fake_send), patch(
-            "custom_components.dreo.pydreo.Helpers.call_api",
-            side_effect=fake_call_api,
+        with (
+            patch(PATCH_SEND_COMMAND, side_effect=fake_send),
+            patch(
+                "custom_components.dreo.pydreo.Helpers.call_api",
+                side_effect=fake_call_api,
+            ),
         ):
             assert device.set_rgbic_effect(basic_name) is True
 
@@ -788,17 +821,18 @@ class TestPyDreoAirPurifier(TestBase):
                 return {"code": 0, "data": {}}, 200
             return None, 500
 
-        with patch(PATCH_SEND_COMMAND, side_effect=fake_send), patch(
-            "custom_components.dreo.pydreo.Helpers.call_api",
-            side_effect=fake_call_api,
+        with (
+            patch(PATCH_SEND_COMMAND, side_effect=fake_send),
+            patch(
+                "custom_components.dreo.pydreo.Helpers.call_api",
+                side_effect=fake_call_api,
+            ),
         ):
             device.rgbon = True
             device.rgbbri = 50
             assert device.set_rgbic_effect(HAP010S_BASIC_EFFECT_NAMES[0]) is True
 
-        rgbmode_idx = next(
-            i for i, batch in enumerate(ws_batches) if batch.get("rgbmode") == 2
-        )
+        rgbmode_idx = next(i for i, batch in enumerate(ws_batches) if batch.get("rgbmode") == 2)
         power_batches = ws_batches[:rgbmode_idx]
         sent_keys = {key for batch in power_batches for key in batch}
         assert sent_keys >= {"rgbon", "rgbbri"}
@@ -829,9 +863,7 @@ class TestPyDreoAirPurifier(TestBase):
                 return {"code": 0, "data": {}}, 200
             return None, 500
 
-        with patch(PATCH_SEND_COMMAND, side_effect=fake_send), patch(
-            "custom_components.dreo.pydreo.Helpers.call_api", side_effect=fake_call_api
-        ):
+        with patch(PATCH_SEND_COMMAND, side_effect=fake_send), patch("custom_components.dreo.pydreo.Helpers.call_api", side_effect=fake_call_api):
             assert device.set_rgbic_effect(selected_name) is True
 
         assert device.rgbic_effect_name == selected_name

@@ -77,7 +77,7 @@ class TestDreoDeHumidifier(IntegrationTestBase):
             assert water_empty_sensor is not None, "Water Empty binary sensor should exist for dehumidifier"
             assert water_empty_sensor.is_on is False, "Water Empty should be False when error code wrong=0"
 
-    def test_HDH005S(self):# pylint: disable=invalid-name
+    def test_HDH005S(self):  # pylint: disable=invalid-name
         """Load DR-HDH005S dehumidifier and test sending commands."""
         with patch(PATCH_SCHEDULE_UPDATE_HA_STATE):
             self.get_devices_file_name = "get_devices_HDH005S.json"

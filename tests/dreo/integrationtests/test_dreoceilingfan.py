@@ -294,7 +294,11 @@ class TestDreoCeilingFan(IntegrationTestBase):
             # Applying an RGBIC effect first sends atmon, then schedules the
             # REST API effect request after the atmosphere light wake-up delay.
             scheduled = []
-            self.pydreo_manager.set_schedule_call_later(lambda delay, callback: (scheduled.append({"delay": delay, "callback": callback, "cancelled": False}) or (lambda: scheduled[-1].update(cancelled=True))))
+            self.pydreo_manager.set_schedule_call_later(
+                lambda delay, callback: (
+                    scheduled.append({"delay": delay, "callback": callback, "cancelled": False}) or (lambda: scheduled[-1].update(cancelled=True))
+                )
+            )
             with patch(PATCH_SEND_COMMAND) as mock_send_command:
                 rgbic_light.turn_on(effect="Constant")
                 mock_send_command.assert_any_call(pydreo_fan, {ATMON_KEY: True})
@@ -332,7 +336,10 @@ class TestDreoCeilingFan(IntegrationTestBase):
             self.pydreo_manager.set_schedule_call_later(
                 lambda delay, callback: scheduled.append({"delay": delay, "callback": callback}) or (lambda: None)
             )
-            with patch(PATCH_SEND_COMMAND) as mock_send_command, patch.object(self.pydreo_manager, "set_rgbic_effect", return_value=True) as mock_effect:
+            with (
+                patch(PATCH_SEND_COMMAND) as mock_send_command,
+                patch.object(self.pydreo_manager, "set_rgbic_effect", return_value=True) as mock_effect,
+            ):
                 rgbic_light.turn_on(rgb_color=(255, 0, 0))
                 # Only atmon goes over the WebSocket (turn_on and the effect path both send it).
                 assert {str(c.args[1]) for c in mock_send_command.call_args_list} == {str({ATMON_KEY: True})}

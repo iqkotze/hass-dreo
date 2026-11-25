@@ -546,4 +546,3 @@ class TestPyDreoEvaporativeCooler(TestBase):
         assert ec_fan.rgblevel == 1
         ec_fan.handle_server_update({REPORTED_KEY: {RGB_BRI: 3}})
         assert ec_fan.rgblevel == 3
-

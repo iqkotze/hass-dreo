@@ -91,7 +91,9 @@ class TestDreoAirCirculator(IntegrationTestBase):
 
             # Check to see what switches are added to air circulator fans
             switches = switch.get_entries([pydreo_fan])
-            self.verify_expected_entities(switches, ["Horizontally Oscillating", "Panel Sound", "Vertically Oscillating", "Display Auto Off", "Child Lock"])
+            self.verify_expected_entities(
+                switches, ["Horizontally Oscillating", "Panel Sound", "Vertically Oscillating", "Display Auto Off", "Child Lock"]
+            )
 
             # Test timer support (issue #915: DR-HAF001S has an on-device auto on/off timer)
             numbers = number.get_entries([pydreo_fan])
@@ -99,7 +101,10 @@ class TestDreoAirCirculator(IntegrationTestBase):
             timer_off_number = self.get_entity_by_key(numbers, "Timer Off")
             assert timer_off_number.native_value == 0
 
-            with patch("custom_components.dreo.pydreo.pydreobasedevice.time.time", return_value=1793141533.7), patch(PATCH_SEND_COMMAND) as mock_send_command:
+            with (
+                patch("custom_components.dreo.pydreo.pydreobasedevice.time.time", return_value=1793141533.7),
+                patch(PATCH_SEND_COMMAND) as mock_send_command,
+            ):
                 timer_off_number.set_native_value(480)
                 mock_send_command.assert_called_once_with(pydreo_fan, {TIMEROFF_KEY: {"ts": 1793141533, "du": 480}})
             pydreo_fan.handle_server_update_base({REPORTED_KEY: {TIMEROFF_KEY: {"du": 480, "ts": 1793141533}}})
@@ -167,7 +172,9 @@ class TestDreoAirCirculator(IntegrationTestBase):
 
             # Check to see what switches are added to air circulator fans
             switches = switch.get_entries([pydreo_fan])
-            self.verify_expected_entities(switches, ["Adaptive Brightness", "Child Lock", "Horizontally Oscillating", "Panel Sound", "Vertically Oscillating"])
+            self.verify_expected_entities(
+                switches, ["Adaptive Brightness", "Child Lock", "Horizontally Oscillating", "Panel Sound", "Vertically Oscillating"]
+            )
 
     def test_HAF004S_old_rev(self):  # pylint: disable=invalid-name
         """Test HAF004S old hardware revision (SC95F8613B MCU).
@@ -288,7 +295,9 @@ class TestDreoAirCirculator(IntegrationTestBase):
 
             # Check switches
             switches = switch.get_entries([pydreo_fan])
-            self.verify_expected_entities(switches, ["Child Lock", "Display Auto Off", "Horizontally Oscillating", "Panel Sound", "Vertically Oscillating"])
+            self.verify_expected_entities(
+                switches, ["Child Lock", "Display Auto Off", "Horizontally Oscillating", "Panel Sound", "Vertically Oscillating"]
+            )
 
     def test_HPF007S(self):  # pylint: disable=invalid-name
         """Test test_HPF007S fan."""
@@ -376,9 +385,7 @@ class TestDreoAirCirculator(IntegrationTestBase):
             # along with the power-on or the device restores its remembered state.
             with patch(PATCH_SEND_COMMAND) as mock_send_command:
                 ha_fan.turn_on(percentage=20, preset_mode="auto")
-                mock_send_command.assert_called_once_with(
-                    pydreo_fan, {FANON_KEY: True, WIND_MODE_KEY: 4, WINDLEVEL_KEY: 2}
-                )
+                mock_send_command.assert_called_once_with(pydreo_fan, {FANON_KEY: True, WIND_MODE_KEY: 4, WINDLEVEL_KEY: 2})
             pydreo_fan.handle_server_update({REPORTED_KEY: {FANON_KEY: True, WIND_MODE_KEY: 4, WINDLEVEL_KEY: 2}})
             assert ha_fan.is_on is True
             assert ha_fan.preset_mode == "auto"
@@ -770,7 +777,9 @@ class TestDreoAirCirculator(IntegrationTestBase):
 
             # Check entities
             switches = switch.get_entries([pydreo_fan])
-            self.verify_expected_entities(switches, ["Child Lock", "Display Light", "Horizontally Oscillating", "Panel Sound", "Vertically Oscillating"])
+            self.verify_expected_entities(
+                switches, ["Child Lock", "Display Light", "Horizontally Oscillating", "Panel Sound", "Vertically Oscillating"]
+            )
 
     def test_HPF002S(self):  # pylint: disable=invalid-name
         """Test HPF002S fan."""
@@ -846,7 +855,9 @@ class TestDreoAirCirculator(IntegrationTestBase):
 
             # Check entities
             switches = switch.get_entries([pydreo_fan])
-            self.verify_expected_entities(switches, ["Child Lock", "Display Light", "Horizontally Oscillating", "Panel Sound", "Vertically Oscillating"])
+            self.verify_expected_entities(
+                switches, ["Child Lock", "Display Light", "Horizontally Oscillating", "Panel Sound", "Vertically Oscillating"]
+            )
 
     def test_HPF005S(self):  # pylint: disable=invalid-name
         """Test HPF005S fan with hangleadj support and full preset mode coverage."""
@@ -991,7 +1002,9 @@ class TestDreoAirCirculator(IntegrationTestBase):
 
             # Test entity inventory
             switches = switch.get_entries([pydreo_fan])
-            self.verify_expected_entities(switches, ["Child Lock", "Display Light", "Horizontally Oscillating", "Panel Sound", "Vertically Oscillating"])
+            self.verify_expected_entities(
+                switches, ["Child Lock", "Display Light", "Horizontally Oscillating", "Panel Sound", "Vertically Oscillating"]
+            )
             numbers = number.get_entries([pydreo_fan])
             self.verify_expected_entities(numbers, ["Horizontal Angle"])
 
@@ -1090,7 +1103,9 @@ class TestDreoAirCirculator(IntegrationTestBase):
 
             # Test entity inventory
             switches = switch.get_entries([pydreo_fan])
-            self.verify_expected_entities(switches, ["Adaptive Brightness", "Child Lock", "Display Light", "Horizontally Oscillating", "Panel Sound", "Vertically Oscillating"])
+            self.verify_expected_entities(
+                switches, ["Adaptive Brightness", "Child Lock", "Display Light", "Horizontally Oscillating", "Panel Sound", "Vertically Oscillating"]
+            )
             numbers = number.get_entries([pydreo_fan])
             self.verify_expected_entities(
                 numbers,

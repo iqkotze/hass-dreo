@@ -58,7 +58,10 @@ class TestDreoHumidifier(IntegrationTestBase):
             )
             timer_off_number = self.get_entity_by_key(numbers, "Timer Off")
             assert timer_off_number.native_value == 0
-            with patch("custom_components.dreo.pydreo.pydreobasedevice.time.time", return_value=1793141533.7), patch(PATCH_SEND_COMMAND) as mock_send_command:
+            with (
+                patch("custom_components.dreo.pydreo.pydreobasedevice.time.time", return_value=1793141533.7),
+                patch(PATCH_SEND_COMMAND) as mock_send_command,
+            ):
                 timer_off_number.set_native_value(240)
                 mock_send_command.assert_called_once_with(pydreo_humidifier, {TIMEROFF_KEY: {"ts": 1793141533, "du": 240}})
             pydreo_humidifier.handle_server_update_base({REPORTED_KEY: {TIMEROFF_KEY: {"du": 240, "ts": 1793141533}}})
@@ -70,9 +73,7 @@ class TestDreoHumidifier(IntegrationTestBase):
 
             # Check to see what switches are added - display, sound, schedule
             switches = switch.get_entries([pydreo_humidifier])
-            self.verify_expected_entities(
-                switches, ["Display Light", "Panel Sound", "Schedule"]
-            )
+            self.verify_expected_entities(switches, ["Display Light", "Panel Sound", "Schedule"])
 
             # Check to see what lights are added - ambient light entity
             lights = light.get_entries([pydreo_humidifier])
@@ -128,9 +129,7 @@ class TestDreoHumidifier(IntegrationTestBase):
 
             # Check to see what switches are added - HHM014S has no Display Light
             switches = switch.get_entries([pydreo_humidifier])
-            self.verify_expected_entities(
-                switches, ["Panel Sound", "Schedule"]
-            )
+            self.verify_expected_entities(switches, ["Panel Sound", "Schedule"])
 
             # Check to see what binary sensors are added - water empty
             binary_sensors = binary_sensor.get_entries([pydreo_humidifier])
@@ -154,7 +153,7 @@ class TestDreoHumidifier(IntegrationTestBase):
             assert water_level_percent_sensor.native_value == 42
             assert water_level_percent_sensor.entity_description.entity_registry_enabled_default is False
 
-    def test_HHM003S(self):# pylint: disable=invalid-name
+    def test_HHM003S(self):  # pylint: disable=invalid-name
         """Load HHM003S (HM713S/813S) humidifier and test all features including humidity sensors."""
         with patch(PATCH_SCHEDULE_UPDATE_HA_STATE):
             self.get_devices_file_name = "get_devices_HHM003S.json"
@@ -214,9 +213,7 @@ class TestDreoHumidifier(IntegrationTestBase):
 
             # Check to see what switches are added
             switches = switch.get_entries([pydreo_humidifier])
-            self.verify_expected_entities(
-                switches, ["Display Light", "Panel Sound", "Schedule"]
-            )
+            self.verify_expected_entities(switches, ["Display Light", "Panel Sound", "Schedule"])
 
             # Check to see what lights are added
             lights = light.get_entries([pydreo_humidifier])
@@ -268,15 +265,13 @@ class TestDreoHumidifier(IntegrationTestBase):
 
             # Check to see what switches are added
             switches = switch.get_entries([pydreo_humidifier])
-            self.verify_expected_entities(
-                switches, ["Display Light", "Panel Sound", "Schedule"]
-            )
+            self.verify_expected_entities(switches, ["Display Light", "Panel Sound", "Schedule"])
 
             # Check to see what binary sensors are added - water empty
             binary_sensors = binary_sensor.get_entries([pydreo_humidifier])
             assert len(binary_sensors) == 1
 
-    def test_HHM006S(self):# pylint: disable=invalid-name
+    def test_HHM006S(self):  # pylint: disable=invalid-name
         """Load HHM006S (HM306S) humidifier and test sending commands."""
         with patch(PATCH_SCHEDULE_UPDATE_HA_STATE):
             self.get_devices_file_name = "get_devices_HHM006S.json"
@@ -318,15 +313,13 @@ class TestDreoHumidifier(IntegrationTestBase):
 
             # Check to see what switches are added
             switches = switch.get_entries([pydreo_humidifier])
-            self.verify_expected_entities(
-                switches, ["Display Light", "Panel Sound", "Schedule"]
-            )
+            self.verify_expected_entities(switches, ["Display Light", "Panel Sound", "Schedule"])
 
             # Check to see what binary sensors are added - water empty
             binary_sensors = binary_sensor.get_entries([pydreo_humidifier])
             assert len(binary_sensors) == 1
 
-    def test_HHM003S_mode_changes(self):# pylint: disable=invalid-name
+    def test_HHM003S_mode_changes(self):  # pylint: disable=invalid-name
         """Test that HHM003S (HM713S/813S) mode changes call schedule_update_ha_state."""
 
         self.get_devices_file_name = "get_devices_HHM003S.json"

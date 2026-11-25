@@ -107,15 +107,8 @@ def test_translation_matches_strings_keys(path: Path):
 )
 def test_state_keys_are_valid_slugs(path: Path):
     """Entity state translation keys must be valid HA slugs (lowercase)."""
-    invalid = [
-        key_path
-        for key_path in _state_key_paths(_load(path))
-        if not SLUG_RE.match(key_path.rsplit("/", 1)[-1])
-    ]
-    assert not invalid, (
-        f"{path.name} has invalid state translation keys "
-        f"(must be lowercase slug [a-z0-9_-]): {invalid}"
-    )
+    invalid = [key_path for key_path in _state_key_paths(_load(path)) if not SLUG_RE.match(key_path.rsplit("/", 1)[-1])]
+    assert not invalid, f"{path.name} has invalid state translation keys (must be lowercase slug [a-z0-9_-]): {invalid}"
 
 
 @pytest.mark.parametrize(("language", "label"), INDICATOR_TRANSLATIONS.items())

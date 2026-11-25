@@ -188,6 +188,7 @@ class TestDreoSensorHA(TestDeviceBase):
         cook_end_sensors = [e for e in entities if e.entity_description.key == "Cook end time"]
         assert len(cook_end_sensors) == 1
         assert cook_end_sensors[0].native_value is None
+
     def test_sensor_filter_life(self):
         """Test Filter Life sensor creation for humidifiers."""
         device = self.create_mock_device(name="Test Humidifier", serial_number="HUM001", type="Humidifier", features={"filtertime": 75})
@@ -199,9 +200,7 @@ class TestDreoSensorHA(TestDeviceBase):
 
     def test_sensor_get_entries_water_level_percent(self):
         """Test Water Level Percent sensor creation for humidifiers that support it."""
-        device = self.create_mock_device(
-            name="Test Humidifier", serial_number="HUM001", type="Humidifier", features={"water_level_percent": 42}
-        )
+        device = self.create_mock_device(name="Test Humidifier", serial_number="HUM001", type="Humidifier", features={"water_level_percent": 42})
 
         entities = sensor.get_entries([device])
         keys = [e.entity_description.key for e in entities]
@@ -217,9 +216,7 @@ class TestDreoSensorHA(TestDeviceBase):
 
     def test_sensor_get_entries_water_level_percent_excluded_for_non_humidifier(self):
         """Test Water Level Percent sensor is not created for a non-humidifier device type."""
-        device = self.create_mock_device(
-            name="Test Cooler", serial_number="COOL001", type="Evaporative Cooler", features={"water_level_percent": 42}
-        )
+        device = self.create_mock_device(name="Test Cooler", serial_number="COOL001", type="Evaporative Cooler", features={"water_level_percent": 42})
 
         entities = sensor.get_entries([device])
         keys = [e.entity_description.key for e in entities]
@@ -228,9 +225,7 @@ class TestDreoSensorHA(TestDeviceBase):
     def test_sensor_water_level_percent_native_value(self):
         """Test the native_value property for the Water Level Percent sensor."""
         with patch(PATCH_UPDATE_HA_STATE):
-            device = self.create_mock_device(
-                name="Test Humidifier", serial_number="HUM001", type="Humidifier", features={"water_level_percent": 42}
-            )
+            device = self.create_mock_device(name="Test Humidifier", serial_number="HUM001", type="Humidifier", features={"water_level_percent": 42})
 
             entities = sensor.get_entries([device])
             water_level_percent_sensor = next(e for e in entities if e.entity_description.key == "Water Level Percent")

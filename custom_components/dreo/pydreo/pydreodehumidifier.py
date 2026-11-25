@@ -3,7 +3,18 @@
 import logging
 from typing import TYPE_CHECKING, Dict
 
-from .constant import MODE_KEY, MUTEON_KEY, POWERON_KEY, HUMIDITY_KEY, WINDLEVEL_KEY, CHILDLOCKON_KEY, LIGHTON_KEY, SPEED_RANGE, TEMPERATURE_KEY, TemperatureUnit
+from .constant import (
+    MODE_KEY,
+    MUTEON_KEY,
+    POWERON_KEY,
+    HUMIDITY_KEY,
+    WINDLEVEL_KEY,
+    CHILDLOCKON_KEY,
+    LIGHTON_KEY,
+    SPEED_RANGE,
+    TEMPERATURE_KEY,
+    TemperatureUnit,
+)
 
 from .pydreobasedevice import PyDreoBaseDevice
 from .models import DreoDeviceDetails
