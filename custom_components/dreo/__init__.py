@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 from .haimports import *  # pylint: disable=W0401,W0614
 from .runtime import DreoConfigEntry, DreoRuntimeData
+from .config_flow import normalize_username
 from .const import DOMAIN, CONF_AUTO_RECONNECT, DEBUG_TEST_MODE
 
 if TYPE_CHECKING:
@@ -137,7 +138,7 @@ def _backfill_unique_id(hass: HomeAssistant, config_entry: DreoConfigEntry, user
     """Set the unique ID of legacy entries unless another entry already uses it."""
     if config_entry.unique_id is not None or not username:
         return
-    unique_id = username.strip().lower()
+    unique_id = normalize_username(username)
     if not any(e.unique_id == unique_id for e in hass.config_entries.async_entries(DOMAIN)):
         hass.config_entries.async_update_entry(config_entry, unique_id=unique_id)
 
