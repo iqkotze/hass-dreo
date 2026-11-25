@@ -18,6 +18,17 @@
         "data": {
           "password": "Passwort"
         }
+      },
+      "reconfigure": {
+        "title": "Zugangsdaten ändern",
+        "description": "Passwort oder Region für {username} ändern.",
+        "data": {
+          "password": "Passwort",
+          "region": "Region"
+        },
+        "data_description": {
+          "region": "Wählen Sie die Dreo-Cloud-Region für Ihr Konto. Automatische Erkennung funktioniert für die meisten Benutzer."
+        }
       }
     },
     "error": {
@@ -27,7 +38,8 @@
     },
     "abort": {
       "already_configured": "Das Konto ist bereits konfiguriert.",
-      "reauth_successful": "Die erneute Anmeldung war erfolgreich."
+      "reauth_successful": "Die erneute Anmeldung war erfolgreich.",
+      "reconfigure_successful": "Die Konfiguration wurde aktualisiert."
     }
   },
   "options": {

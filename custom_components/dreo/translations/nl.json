@@ -18,6 +18,17 @@
         "data": {
           "password": "Wachtwoord"
         }
+      },
+      "reconfigure": {
+        "title": "Inloggegevens wijzigen",
+        "description": "Wijzig het wachtwoord of de regio voor {username}.",
+        "data": {
+          "password": "Wachtwoord",
+          "region": "Regio"
+        },
+        "data_description": {
+          "region": "Kies de Dreo-cloudregio voor je account. Automatische detectie werkt voor de meeste gebruikers."
+        }
       }
     },
     "error": {
@@ -27,7 +38,8 @@
     },
     "abort": {
       "already_configured": "Account is al geconfigureerd.",
-      "reauth_successful": "Opnieuw aanmelden is gelukt."
+      "reauth_successful": "Opnieuw aanmelden is gelukt.",
+      "reconfigure_successful": "De configuratie is bijgewerkt."
     }
   },
   "options": {

@@ -18,6 +18,17 @@
         "data": {
           "password": "Contraseña"
         }
+      },
+      "reconfigure": {
+        "title": "Cambiar credenciales",
+        "description": "Cambia la contraseña o la región de {username}.",
+        "data": {
+          "password": "Contraseña",
+          "region": "Región"
+        },
+        "data_description": {
+          "region": "Selecciona la región de la nube de Dreo para tu cuenta. La detección automática funciona para la mayoría de usuarios."
+        }
       }
     },
     "error": {
@@ -27,7 +38,8 @@
     },
     "abort": {
       "already_configured": "La cuenta ya está configurada.",
-      "reauth_successful": "La reautenticación se realizó correctamente."
+      "reauth_successful": "La reautenticación se realizó correctamente.",
+      "reconfigure_successful": "La configuración se ha actualizado."
     }
   },
   "options": {

@@ -335,3 +335,58 @@ class TestReauth:
         assert result == "form"
         assert flow.async_show_form.call_args[1]["errors"] == {"base": expected}
         flow.async_update_reload_and_abort.assert_not_called()
+
+
+class TestReconfigure:
+    """Reconfigure flow for password and region."""
+
+    @staticmethod
+    def _flow(login_result, error=None, exc=None):
+        flow = DreoFlowHandler()
+        entry = MagicMock()
+        entry.data = {"username": "test@example.com", "password": "old", "region": "EU"}
+        flow._get_reconfigure_entry = MagicMock(return_value=entry)
+        flow.async_show_form = MagicMock(return_value="form")
+        flow.async_update_reload_and_abort = MagicMock(return_value="aborted")
+        flow.hass = MagicMock()
+        flow.hass.async_add_executor_job = AsyncMock(return_value=login_result, side_effect=exc)
+        manager = MagicMock()
+        manager.last_login_error = error
+        return flow, entry, manager
+
+    def test_reconfigure_form_defaults_to_stored_region(self):
+        """#9 K1/K4: form shows password and region defaulting to the stored region."""
+        flow, _, _ = self._flow(True)
+        assert asyncio.run(flow.async_step_reconfigure()) == "form"
+        kwargs = flow.async_show_form.call_args[1]
+        assert kwargs["step_id"] == "reconfigure"
+        assert kwargs["description_placeholders"] == {"username": "test@example.com"}
+        schema = {str(k): k for k in kwargs["data_schema"].schema}
+        assert list(schema) == ["password", "region"]
+        assert schema["region"].default() == "EU"
+
+    def test_reconfigure_success_updates_password_and_region(self):
+        """#9 K2/K4: valid login updates password and region and aborts with reload."""
+        flow, entry, manager = self._flow(True)
+        with patch("custom_components.dreo.config_flow.PyDreo", return_value=manager) as mock_pydreo:
+            result = asyncio.run(flow.async_step_reconfigure({"password": "new", "region": "NA"}))
+        assert result == "aborted"
+        mock_pydreo.assert_called_once_with("test@example.com", "new", region="NA")
+        flow.async_update_reload_and_abort.assert_called_once_with(entry, data_updates={"password": "new", "region": "NA"})
+
+    def test_reconfigure_auto_region_logs_in_without_region(self):
+        """#9 K1: auto-detect passes no region to the login."""
+        flow, _, manager = self._flow(True)
+        with patch("custom_components.dreo.config_flow.PyDreo", return_value=manager) as mock_pydreo:
+            asyncio.run(flow.async_step_reconfigure({"password": "new", "region": "auto"}))
+        mock_pydreo.assert_called_once_with("test@example.com", "new", region=None)
+
+    @pytest.mark.parametrize("error,expected", [("invalid_auth", "invalid_auth"), ("cannot_connect", "cannot_connect")])
+    def test_reconfigure_failure_shows_error(self, error, expected):
+        """#9 K1/K4: failed login shows the mapped error and does not update."""
+        flow, _, manager = self._flow(False, error=error)
+        with patch("custom_components.dreo.config_flow.PyDreo", return_value=manager):
+            result = asyncio.run(flow.async_step_reconfigure({"password": "bad", "region": "EU"}))
+        assert result == "form"
+        assert flow.async_show_form.call_args[1]["errors"] == {"base": expected}
+        flow.async_update_reload_and_abort.assert_not_called()

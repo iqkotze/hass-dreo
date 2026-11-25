@@ -64,12 +64,12 @@ class DreoFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self.data_schema = OrderedDict()
         self.data_schema[vol.Required(CONF_USERNAME)] = str
         self.data_schema[vol.Required(CONF_PASSWORD)] = str
-        self.data_schema[vol.Optional(CONF_REGION, default=CONF_REGION_AUTO)] = selector.SelectSelector(
-            selector.SelectSelectorConfig(
-                options=REGION_OPTIONS,
-                mode=selector.SelectSelectorMode.DROPDOWN,
-            )
-        )
+        self.data_schema[vol.Optional(CONF_REGION, default=CONF_REGION_AUTO)] = self.data_schema_region()
+
+    @staticmethod
+    def data_schema_region() -> selector.SelectSelector:
+        """Region dropdown shared by the user and reconfigure steps."""
+        return selector.SelectSelector(selector.SelectSelectorConfig(options=REGION_OPTIONS, mode=selector.SelectSelectorMode.DROPDOWN))
 
     @callback
     def _show_form(self, errors=None):
@@ -132,6 +132,30 @@ class DreoFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="reauth_confirm",
             data_schema=vol.Schema({vol.Required(CONF_PASSWORD): str}),
+            description_placeholders={"username": username},
+            errors=errors,
+        )
+
+    async def async_step_reconfigure(self, user_input: Dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Change password and region of an existing entry."""
+        entry = self._get_reconfigure_entry()
+        username = entry.data[CONF_USERNAME]
+        errors: Dict[str, str] = {}
+        if user_input is not None:
+            region = user_input.get(CONF_REGION, CONF_REGION_AUTO)
+            error = await self._async_login_error(username, user_input[CONF_PASSWORD], None if region == CONF_REGION_AUTO else region)
+            if not error:
+                return self.async_update_reload_and_abort(entry, data_updates={CONF_PASSWORD: user_input[CONF_PASSWORD], CONF_REGION: region})
+            errors["base"] = error
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_PASSWORD): str,
+                vol.Optional(CONF_REGION, default=entry.data.get(CONF_REGION, CONF_REGION_AUTO)): self.data_schema_region(),
+            }
+        )
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=schema,
             description_placeholders={"username": username},
             errors=errors,
         )
