@@ -308,6 +308,9 @@
       }
     },
     "select": {
+      "heat_level": {
+        "name": "Nivel de calor"
+      },
       "mist_level": {
         "name": "Nivel de niebla",
         "state": {

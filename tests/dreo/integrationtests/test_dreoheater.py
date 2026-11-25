@@ -264,7 +264,7 @@ class TestDreoHeater(IntegrationTestBase):
             assert vosc.is_on is False
 
             selects = select.get_entries([pydreo_heater])
-            self.verify_expected_entities(selects, ["Horizontal Oscillation Angle", "Vertical Oscillation Angle"])
+            self.verify_expected_entities(selects, ["Heat Level", "Horizontal Oscillation Angle", "Vertical Oscillation Angle"])
             hangle = self.get_entity_by_key(selects, "Horizontal Oscillation Angle")
             vangle = self.get_entity_by_key(selects, "Vertical Oscillation Angle")
             assert hangle.translation_key == "horizontal_oscillation_angle"
@@ -1081,13 +1081,26 @@ class TestDreoHeater(IntegrationTestBase):
                 mock_send_command.assert_any_call(pydreo_heater, {WINOPENON_KEY: True})
 
             selects = select.get_entries([pydreo_heater])
-            self.verify_expected_entities(selects, ["Display Mode"])
+            self.verify_expected_entities(selects, ["Display Mode", "Heat Level"])
             display = self.get_entity_by_key(selects, "Display Mode")
             assert display.options == ["off", "on", "auto"]
             assert display.current_option == "auto"
             with patch(PATCH_SEND_COMMAND) as mock_send_command:
                 display.select_option("off")
                 mock_send_command.assert_any_call(pydreo_heater, {LIGHTMODE_KEY: 0})
+
+            # Heat level select: levels 1..5 from the device's heat range; selecting one turns the heater on in hot air mode
+            heat_level = self.get_entity_by_key(selects, "Heat Level")
+            assert heat_level.translation_key == "heat_level"
+            assert heat_level.options == ["1", "2", "3", "4", "5"]
+            assert heat_level.current_option == str(pydreo_heater.htalevel)
+            new_level = 1 if pydreo_heater.htalevel != 1 else 2
+            with patch(PATCH_SEND_COMMAND) as mock_send_command:
+                heat_level.select_option(str(new_level))
+                mock_send_command.assert_any_call(pydreo_heater, {HTALEVEL_KEY: new_level})
+            with patch(PATCH_SEND_COMMAND) as mock_send_command:
+                heat_level.select_option("9")
+                mock_send_command.assert_not_called()
 
             sensors = sensor.get_entries([pydreo_heater])
             self.verify_expected_entities(sensors, ["Fault"])

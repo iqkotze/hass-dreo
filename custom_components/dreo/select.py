@@ -15,7 +15,7 @@ from .haimports import *  # pylint: disable=W0401,W0614
 from .dreobasedevice import DreoBaseDeviceHA
 from .pydreo import PyDreo
 from .pydreo.pydreobasedevice import PyDreoBaseDevice
-from .pydreo.constant import DreoDeviceType, HEATER_AXIS_HORIZONTAL_SPANS, HEATER_AXIS_VERTICAL_SPANS
+from .pydreo.constant import DreoDeviceType, DreoHeaterMode, HEATER_AXIS_HORIZONTAL_SPANS, HEATER_AXIS_VERTICAL_SPANS
 
 from .const import DOMAIN, PYDREO_MANAGER
 
@@ -31,6 +31,17 @@ class DreoSelectEntityDescription(SelectEntityDescription):
     raw_values: list[int] = field(default_factory=list)
     exists_fn: Callable[[PyDreoBaseDevice], bool] | None = None
 
+
+# Heat levels when the device definition gives no range (the climate entity uses the same default)
+DEFAULT_HEAT_LEVEL_RANGE = (1, 3)
+
+HEAT_LEVEL_DESCRIPTION = DreoSelectEntityDescription(
+    key="Heat Level",
+    translation_key="heat_level",
+    attr_name="htalevel",
+    icon="mdi:radiator",
+    exists_fn=lambda device: device.type == DreoDeviceType.HEATER and device.is_feature_supported("htalevel"),
+)
 
 SELECTS: tuple[DreoSelectEntityDescription, ...] = (
     DreoSelectEntityDescription(
@@ -102,6 +113,8 @@ def get_entries(pydreo_devices: list[PyDreoBaseDevice]) -> list["DreoSelectHA"]:
             if not device.is_feature_supported(sel.attr_name):
                 continue
             entities.append(DreoSelectHA(device, sel))
+        if HEAT_LEVEL_DESCRIPTION.exists_fn(device):
+            entities.append(DreoHeatLevelSelectHA(device, HEAT_LEVEL_DESCRIPTION))
 
     return entities
 
@@ -197,3 +210,25 @@ class DreoSelectHA(DreoBaseDeviceHA, SelectEntity):
         except ValueError:
             return
         setattr(self.device, self.entity_description.attr_name, self.entity_description.raw_values[idx])
+
+
+class DreoHeatLevelSelectHA(DreoSelectHA):
+    """Heat level of a heater (1..n), the same levels the climate entity offers as presets H1..Hn."""
+
+    def _get_device_options(self) -> list[str]:
+        low, high = getattr(self.device, "htalevel_range", None) or DEFAULT_HEAT_LEVEL_RANGE
+        return [str(level) for level in range(low, high + 1)]
+
+    @property
+    def current_option(self) -> str | None:
+        level = self.device.htalevel
+        return None if level is None else str(level)
+
+    def select_option(self, option: str) -> None:
+        """Set the heat level; like the H1..Hn presets this switches the heater on in hot air mode."""
+        if option not in self._get_device_options():
+            _LOGGER.warning("select_option: invalid heat level %s for %s", option, self.device.name)
+            return
+        self.device.poweron = True
+        self.device.mode = DreoHeaterMode.HOTAIR
+        self.device.htalevel = int(option)

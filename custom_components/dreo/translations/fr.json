@@ -308,6 +308,9 @@
       }
     },
     "select": {
+      "heat_level": {
+        "name": "Niveau de chauffe"
+      },
       "mist_level": {
         "name": "Niveau de brume",
         "state": {

@@ -308,6 +308,9 @@
       }
     },
     "select": {
+      "heat_level": {
+        "name": "Poziom grzania"
+      },
       "mist_level": {
         "name": "Poziom mgły",
         "state": {

@@ -308,6 +308,9 @@
       }
     },
     "select": {
+      "heat_level": {
+        "name": "Livello di calore"
+      },
       "mist_level": {
         "name": "Livello nebbia",
         "state": {

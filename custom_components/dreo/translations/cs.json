@@ -308,6 +308,9 @@
       }
     },
     "select": {
+      "heat_level": {
+        "name": "Stupeň ohřevu"
+      },
       "mist_level": {
         "name": "Úroveň mlžení",
         "state": {

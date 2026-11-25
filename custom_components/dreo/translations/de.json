@@ -308,6 +308,9 @@
       }
     },
     "select": {
+      "heat_level": {
+        "name": "Heizstufe"
+      },
       "mist_level": {
         "name": "Nebelstufe",
         "state": {

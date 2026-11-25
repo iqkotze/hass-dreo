@@ -308,6 +308,9 @@
       }
     },
     "select": {
+      "heat_level": {
+        "name": "Warmtestand"
+      },
       "mist_level": {
         "name": "Nevelniveau",
         "state": {

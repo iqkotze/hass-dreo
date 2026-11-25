@@ -308,6 +308,9 @@
       }
     },
     "select": {
+      "heat_level": {
+        "name": "Степен на нагряване"
+      },
       "mist_level": {
         "name": "Ниво на мъглата",
         "state": {

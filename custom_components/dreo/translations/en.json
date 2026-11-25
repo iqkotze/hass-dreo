@@ -308,6 +308,9 @@
       }
     },
     "select": {
+      "heat_level": {
+        "name": "Heat Level"
+      },
       "mist_level": {
         "name": "Mist Level",
         "state": {
