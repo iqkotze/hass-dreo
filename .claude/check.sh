@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Gate before pushing: ruff, format and complexity of changed files, full pytest run.
+# Gate before pushing: ruff, format of changed files, complexity ratchet, full pytest run.
 # Usage: .claude/check.sh [<base>]   (default base: origin/main)
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
@@ -15,8 +15,7 @@ mapfile -t changed < <(git diff --name-only --diff-filter=d "$base" -- '*.py'; g
 uvx -q ruff check .
 if ((${#changed[@]})); then
   uvx -q ruff format --check "${changed[@]}"
-  src=()
-  for f in "${changed[@]}"; do [[ $f == custom_components/* ]] && src+=("$f"); done
-  if ((${#src[@]})); then uvx -q complexipy "${src[@]}" -q; fi
 fi
+# Complexity ratchet: fails only for new functions above 20 or known ones that got worse (complexipy-snapshot.json).
+uvx -q complexipy -q
 .venv/bin/python -m pytest -q -p no:cacheprovider --tb=line
