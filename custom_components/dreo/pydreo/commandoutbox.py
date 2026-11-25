@@ -272,36 +272,55 @@ class CommandOutbox:
             self._in_flight = True
             return params
 
+    def _send_batch(self, params: dict) -> Exception | None:
+        """Send one batch outside the lock; return the send error, if any."""
+        try:
+            _LOGGER.debug("outbox %s: sending batch %s", self._name, params)
+            self._send(params)
+        except Exception as ex:  # pylint: disable=broad-except
+            _LOGGER.warning("outbox %s: send failed; dropping batch %s: %s", self._name, params, ex)
+            return ex
+        return None
+
+    def _finish_send(self, force: bool) -> bool:
+        """Release the in-flight slot under the lock; return True if the caller must drain inline."""
+        drain_inline = False
+        with self._lock:
+            self._last_send = time.monotonic()
+            self._in_flight = False
+            self._condition.notify_all()
+            if self._pending:
+                # Drain step: keys arrived during the send. Without this
+                # they would sit here until some future submit.
+                if force or self.timing.is_immediate:
+                    drain_inline = True
+                else:
+                    self._arm(self._delay_until_ready(time.monotonic()))
+        return drain_inline
+
+    def _run_on_sent(self) -> None:
+        """Run the post-send hook outside the lock; hook errors are only logged."""
+        if self._on_sent is not None:
+            try:
+                self._on_sent()
+            except Exception:  # pylint: disable=broad-except
+                _LOGGER.exception("outbox %s: post-send hook failed", self._name)
+
+    def _rearm_after_forced_failure(self) -> None:
+        """Re-arm the timer for keys left pending after a forced flush of a deferred outbox failed."""
+        with self._lock:
+            if self._pending and not self._disposed:
+                self._arm(self._delay_until_ready(time.monotonic()))
+
     def _flush(self, *, force: bool = False) -> None:
         """Send the ready batch; drain anything submitted during the send."""
         while True:
             params = self._claim_batch(force=force)
             if params is None:
                 return
-            send_error: Exception | None = None
-            try:
-                _LOGGER.debug("outbox %s: sending batch %s", self._name, params)
-                self._send(params)
-            except Exception as ex:  # pylint: disable=broad-except
-                _LOGGER.warning("outbox %s: send failed; dropping batch %s: %s", self._name, params, ex)
-                send_error = ex
-            drain_inline = False
-            with self._lock:
-                self._last_send = time.monotonic()
-                self._in_flight = False
-                self._condition.notify_all()
-                if self._pending:
-                    # Drain step: keys arrived during the send. Without this
-                    # they would sit here until some future submit.
-                    if force or self.timing.is_immediate:
-                        drain_inline = True
-                    else:
-                        self._arm(self._delay_until_ready(time.monotonic()))
-            if self._on_sent is not None:
-                try:
-                    self._on_sent()
-                except Exception:  # pylint: disable=broad-except
-                    _LOGGER.exception("outbox %s: post-send hook failed", self._name)
+            send_error = self._send_batch(params)
+            drain_inline = self._finish_send(force)
+            self._run_on_sent()
             if send_error is not None and (force or self.timing.is_immediate):
                 # Immediate mode still has the submitting caller on the stack, and
                 # that caller owns the error - device classes unwind their own
@@ -310,9 +329,7 @@ class CommandOutbox:
                 # logged and the batch dropped (never re-queued: a zombie command
                 # firing after a reconnect outlives the user's action).
                 if force and not self.timing.is_immediate:
-                    with self._lock:
-                        if self._pending and not self._disposed:
-                            self._arm(self._delay_until_ready(time.monotonic()))
+                    self._rearm_after_forced_failure()
                 raise send_error
             if not drain_inline:
                 return

@@ -211,12 +211,8 @@ class CommandTransport:
         except Exception as ex:  # pylint: disable=broad-except
             _LOGGER.error("_ws_consume_message: Callback error: %s", ex)
 
-    def send_message(self, content: dict):
-        """Send a command to Dreo servers via the WebSocket."""
-        if not self._transport_enabled:
-            _LOGGER.error("send_message: Command transport disabled. Run start_transport first.")
-            raise RuntimeError("Command transport disabled. Run start_transport first.")
-
+    def _ensure_event_loop(self) -> None:
+        """Make sure the event loop is available, restarting a dead transport thread if needed."""
         if self._loop is None or self._loop.is_closed():
             # Transport thread may have died unexpectedly while transport is still "enabled".
             # Detect this and try to restart the thread automatically.
@@ -232,6 +228,14 @@ class CommandTransport:
             if self._loop is None or self._loop.is_closed():
                 _LOGGER.error("send_message: WebSocket event loop not available.")
                 raise RuntimeError("WebSocket event loop not available.")
+
+    def send_message(self, content: dict):
+        """Send a command to Dreo servers via the WebSocket."""
+        if not self._transport_enabled:
+            _LOGGER.error("send_message: Command transport disabled. Run start_transport first.")
+            raise RuntimeError("Command transport disabled. Run start_transport first.")
+
+        self._ensure_event_loop()
 
         async def send_internal() -> None:
             retry_count = 0

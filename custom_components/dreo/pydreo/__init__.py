@@ -199,6 +199,27 @@ class PyDreo:  # pylint: disable=function-redefined
         """Return device list, filtering out devices without a deviceId."""
         return [dev for dev in devices if dev.get("deviceId") is not None]
 
+    @staticmethod
+    def _lookup_device_details(model: str) -> DreoDeviceDetails | None:
+        """Find the supported device details by exact model or by model prefix."""
+        # Get the prefix of the model number to match against the supported devices.
+        # Not all models will have known prefixes.
+        model_prefix = None
+        for prefix in SUPPORTED_MODEL_PREFIXES:
+            if model[: len(prefix) :] == prefix:
+                model_prefix = prefix
+                _LOGGER.debug("_process_devices: Prefix %s assigned from model %s", model_prefix, model)
+                break
+
+        device_details = None
+        if model in SUPPORTED_DEVICES:
+            _LOGGER.debug("_process_devices: Device %s found!", model)
+            device_details = SUPPORTED_DEVICES[model]
+        elif model_prefix is not None and model_prefix in SUPPORTED_DEVICES:
+            _LOGGER.debug("_process_devices: Device %s found! via prefix %s", model, model_prefix)
+            device_details = SUPPORTED_DEVICES[model_prefix]
+        return device_details
+
     def _process_devices(self, dev_list: list) -> bool:
         """Instantiate Device Objects."""
         devices = self.set_dev_id(dev_list)
@@ -229,22 +250,7 @@ class PyDreo:  # pylint: disable=function-redefined
                 _LOGGER.debug("_process_devices: Found device with model %s", model)
 
                 if model is not None:
-                    # Get the prefix of the model number to match against the supported devices.
-                    # Not all models will have known prefixes.
-                    model_prefix = None
-                    for prefix in SUPPORTED_MODEL_PREFIXES:
-                        if model[: len(prefix) :] == prefix:
-                            model_prefix = prefix
-                            _LOGGER.debug("_process_devices: Prefix %s assigned from model %s", model_prefix, model)
-                            break
-
-                    device_details = None
-                    if model in SUPPORTED_DEVICES:
-                        _LOGGER.debug("_process_devices: Device %s found!", model)
-                        device_details = SUPPORTED_DEVICES[model]
-                    elif model_prefix is not None and model_prefix in SUPPORTED_DEVICES:
-                        _LOGGER.debug("_process_devices: Device %s found! via prefix %s", model, model_prefix)
-                        device_details = SUPPORTED_DEVICES[model_prefix]
+                    device_details = self._lookup_device_details(model)
 
                 # If device_details is None at this point, we have an unknown device model.
                 # Unsupported/Unknown Device. Load the state, but store it in an "unsupported objects"

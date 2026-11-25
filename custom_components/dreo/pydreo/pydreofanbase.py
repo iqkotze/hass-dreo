@@ -126,6 +126,42 @@ class PyDreoFanBase(PyDreoBaseDevice):
         """Parse the preset modes from the details."""
         raise NotImplementedError
 
+    def _parse_control_and_schedule_modes(self, details: Dict[str, list]) -> list | None:
+        """Collect preset modes from the control and schedule config, sorted by value; None if empty."""
+        preset_modes = []
+        controls_conf = details.get("controlsConf", None)
+        if controls_conf is not None:
+            self._collect_control_modes(controls_conf, preset_modes)
+            self._collect_schedule_modes(controls_conf, preset_modes)
+
+        preset_modes.sort(key=lambda tup: tup[1])  # sorts in place
+        if len(preset_modes) == 0:
+            _LOGGER.debug("parse_preset_modes: No preset modes detected")
+            preset_modes = None
+        _LOGGER.debug("parse_preset_modes: Detected preset modes - %s", preset_modes)
+        return preset_modes
+
+    def _collect_control_modes(self, controls_conf, preset_modes: list) -> None:
+        control = controls_conf.get("control", None)
+        if control is not None:
+            for control_item in control:
+                if control_item.get("type", None) == "Mode":
+                    for mode_item in control_item.get("items", None):
+                        text = self.get_mode_string(mode_item.get("text", None))
+                        value = mode_item.get("value", None)
+                        preset_modes.append((text, value))
+
+    def _collect_schedule_modes(self, controls_conf, preset_modes: list) -> None:
+        schedule = controls_conf.get("schedule", None)
+        if schedule is not None:
+            modes = schedule.get("modes", None)
+            if modes is not None:
+                for mode_item in modes:
+                    text = self.get_mode_string(mode_item.get("title", None))
+                    value = mode_item.get("value", None)
+                    if (text, value) not in preset_modes:
+                        preset_modes.append((text, value))
+
     @property
     def speed_range(self):
         """Get the speed range"""

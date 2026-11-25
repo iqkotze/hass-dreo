@@ -70,33 +70,7 @@ class PyDreoTowerFan(PyDreoFanBase):
 
     def parse_preset_modes(self, details: Dict[str, list]) -> tuple[str, int]:
         """Parse the preset modes from the details."""
-        preset_modes = []
-        controls_conf = details.get("controlsConf", None)
-        if controls_conf is not None:
-            control = controls_conf.get("control", None)
-            if control is not None:
-                for control_item in control:
-                    if control_item.get("type", None) == "Mode":
-                        for mode_item in control_item.get("items", None):
-                            text = self.get_mode_string(mode_item.get("text", None))
-                            value = mode_item.get("value", None)
-                            preset_modes.append((text, value))
-            schedule = controls_conf.get("schedule", None)
-            if schedule is not None:
-                modes = schedule.get("modes", None)
-                if modes is not None:
-                    for mode_item in modes:
-                        text = self.get_mode_string(mode_item.get("title", None))
-                        value = mode_item.get("value", None)
-                        if (text, value) not in preset_modes:
-                            preset_modes.append((text, value))
-
-        preset_modes.sort(key=lambda tup: tup[1])  # sorts in place
-        if len(preset_modes) == 0:
-            _LOGGER.debug("parse_preset_modes: No preset modes detected")
-            preset_modes = None
-        _LOGGER.debug("parse_preset_modes: Detected preset modes - %s", preset_modes)
-        return preset_modes
+        return self._parse_control_and_schedule_modes(details)
 
     @property
     def oscillating(self) -> bool:
